@@ -63,8 +63,11 @@ Written by using option `-a`, this file gives all taxonomically annotated sequen
 '''`Dataset_Assignments.txt`'''[[BR]]
 Written by using option `-p`, this file lists all sequence names and their assignments in a simpe semicolon-separated format. If the Minimum similarity filter prevented assignment at a higher level for this sequence, indicating it to represent a novel taxa, the last taxon is prefixed with the word "Unknown".
 
-'''`All_Assignments.txt`'''[[BR]]
-Written by using option `-o`, this file summarises assignments for all datasets in a tab-separated format. In addition to total abundance (sum of assignments to the taxon and its child nodes) it also lists specific assignments. For each taxon, the full taxonomic path from root to the taxon itself is also given. This file is more suitable for parsing with custom scripts than  `Dataset_Composition.txt`.
+'''`All_Assignments.tsv`'''[[BR]] 
+This file provides counts of the number of assignments at each taxonomic rank for all datasets in a tab-separated format. Note that only assignments to the taxon node itself are counted, not to child taxa at lower ranks. For each taxon, the full taxonomic path from root to the taxon itself is also given. This file is more suitable for parsing than Dataset_Composition.txt.
+
+'''`All_Cumulative.tsv`'''[[BR]] 
+This file provides cumulative counts for the number of assignments at each taxonomic rank for all datasets in a tab-separated format. As opposed to All_Assignments.tsv, assignments to child taxa (lower ranks) are also counted. This file is more suitable for parsing than Dataset_Composition.txt. 
 
 
 '''[http://services.cbu.uib.no/supplementary/crest/LCAClassifier_Example_Output.zip Download example output files]'''
