@@ -501,7 +501,7 @@ class Tree:
                         a = node.getAssignment(dataset)
                         if a:
                             setAssigned = a.primaryPopulation()
-                            if i<Tree.SPECIES and not node.name == "No hits" :
+                            if i<Tree.SPECIES and node.depth<Tree.SPECIES and not node.name == "No hits" :
                                 uc_name = "Unknown %s %s" % (node.name, Tree.depths[node.depth+1])
                                 unknown_children = node.getChildByName(1, uc_name)
                                 if unknown_children and unknown_children.getAssignment(dataset):
