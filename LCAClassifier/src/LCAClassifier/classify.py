@@ -72,15 +72,19 @@ class LCAClassifier(Tree):
             
             #Determine read population from from otus if given
             if abundances:
-                i=0
                 try:
-                    seq_abundances=abundances[qName]
+                    i=0
+                    if qName in abundances.keys():
+                        seq_abundances=abundances[qName]
+                    else:                   
+                        qFix = qName[:qName.find("_")]
+                        seq_abundances=abundances[qFix]
+                        
+                    for ds in datasets:
+                        read_abundances[ds] = seq_abundances[i]
+                        i+=1
                 except:
-                    qName = qName[:qName.find("_")]
-                    seq_abundances=abundances[qName]
-                for ds in datasets:
-                    read_abundances[ds] = seq_abundances[i]
-                    i+=1
+                    print "Warning: Cannot find %s in OTU table!" %qName
             
             #Else determine read population from its name / annotation.
             else:
@@ -108,7 +112,7 @@ class LCAClassifier(Tree):
                     ra=readPopulation
             
             # Check for minimum score and any alignemnts
-            if (record.alignments and
+            if (record.alignments and read_abundances and
                 record.alignments[0].hsps[0].bits >= self.ms):
                 
                 best_hsp = record.alignments[0].hsps[0]
@@ -209,7 +213,7 @@ class LCAClassifier(Tree):
                     self.read_node_assignments[qName] = parents[0]
             
             #Below min. score
-            else:
+            elif read_abundances:
                 #No hits
                 if self.seqs and qName in self.seqs.keys():
                     qSeq = self.seqs[qName]
