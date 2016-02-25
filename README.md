@@ -1,6 +1,8 @@
 **CREST - Classification Resources for Environmnetal Sequence Tags**, is a collection of software and databases for taxonomic classification of environmental marker genes from sequencing-based community profiling studies (also known as "meta-" + "-genomics", " -transcriptomics", "-barcoding"; "taxonomic-" or "phylogenetic-" profiling)). The program LCAClassifier is used used for classification of sequences aligned to the reference databases provided.
 
-If you use CREST or the LCAClassifier in your research, please cite: Lanzén A , Jørgensen SL, Huson D, Gorfer M, Grindhaug SH, Jonassen I, Øvreås L, Urich T (2012) CREST - Classification Resources for Environmental Sequence Tags, PLoS ONE 7:e49334.
+If you use CREST or the LCAClassifier in your research, please cite: 
+
+Lanzén A , Jørgensen SL, Huson D, Gorfer M, Grindhaug SH, Jonassen I, Øvreås L, Urich T (2012) CREST - Classification Resources for Environmental Sequence Tags, *PLoS ONE 7*:**e49334**.
 
 ## Classification databases supported
 
