@@ -2,7 +2,7 @@
 
 If you use CREST or the LCAClassifier in your research, please cite: 
 
-Lanzén A , Jørgensen SL, Huson D, Gorfer M, Grindhaug SH, Jonassen I, Øvreås L, Urich T (2012) CREST - Classification Resources for Environmental Sequence Tags, *PLoS ONE 7*:**e49334**.
+Lanzén A , Jørgensen SL, Huson D, Gorfer M, Grindhaug SH, Jonassen I, Øvreås L, Urich T (2012) CREST - Classification Resources for Environmental Sequence Tags, *PLoS ONE* **7**:e49334
 
 ## Classification databases supported
 
