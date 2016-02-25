@@ -15,7 +15,7 @@ setup(name='LCAClassifier',
       keywords='',
       author='',
       author_email='',
-      url='https://www.ii.uib.no/trac/LCAClassifier',
+      url='https://github.com/lanzen/CREST',
       license='GPL',
       packages=find_packages('src', exclude=['ez_setup']),
       package_dir={'': 'src'},
@@ -24,8 +24,8 @@ setup(name='LCAClassifier',
       install_requires=[
           'setuptools',
           # -*- Extra requirements: -*-
-          'biopython',
           'numpy',
+          'biopython',
           'biom-format',
           ],
       entry_points={
