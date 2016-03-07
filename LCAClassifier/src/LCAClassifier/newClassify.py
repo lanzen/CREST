@@ -33,8 +33,8 @@ import biom.table
 BSR_DEFAULT = 0.98
 MS_DEFAULT = 155
 
-
 class AssignmentInfo:
+    
     """
     Vectors representing assignments (primary), accumulated abundance, and diversity
     Further, singletons and doubletons are recorded to calculate Chao1. Same dimension
@@ -45,17 +45,17 @@ class AssignmentInfo:
         """Create empty AssignmentInfo holder with appropriate dimensions"""        
         self.otus = []
         self.dims = dims
-        dims = len(datasets)
+        #dims = len(datasets)
         self.totalAbundance = [0 for i in range(dims)]
         self.assignedAbundance = [0 for i in range(dims)]
         self.otuRichness = [0 for i in range(dims)]
         self.singletons = [0 for i in range(dims)]
         self.doubletons = [0 for i in range(dims)]
         
-    def addFromOTU(self, otu, primary = False):
+    def addFromOTU(self, otu, primary = True):
         """Updates abundance, diversity etc. from OTU. Primary also adds to assigned abundances"""
         if not len(otu.abundances) == self.dims:
-            sys.std.err("Error: Incorrect dimensions in OTU table for %s" %otu.name)
+            sys.stderr.write("Error: Incorrect dimensions in OTU table for %s" %otu.name)
             return
         
         self.totalAbundance = [self.totalAbundance[i] + otu.abundances[i] 
@@ -88,7 +88,7 @@ class AssignmentInfo:
     def getChaoEstimate(self):
         """@return chao1 estimate based on number of singletons, doubletons and total div."""
         chao=[]
-        for i in range(dims):
+        for i in range(self.dims):
             if self.doubletons[i]>0:
                 chao.append((float(self.singletons[i]*self.singletons[i]) / 
                              float(2*self.doubletons[i]))+ self.otuRichness[i])
@@ -114,8 +114,7 @@ class OTU:
 class LCAClassifier():
     """A classifier instance. Requires a tree for assignments"""
 
-    def __init__(self, name, tree, datasetNames = None,
-                 minFilter=True, otus={}):
+    def __init__(self, name, tree, datasetNames = None, otus={}):
         self.name = name
         self.tree = tree
         if datasetNames:
@@ -125,10 +124,9 @@ class LCAClassifier():
         
         self.bsr = BSR_DEFAULT
         self.ms = MS_DEFAULT
-        self.minFilter = minFilter        
         self.otus = otus
         
-    def assignOTU(self, otu, node):
+    def assignOTU(self, otu, node, primary=True):
         """
         Accepts and OTU instance and classifies it to the given node in the 
         reference tree. Traverses the tree downwards to add abundances and 
@@ -138,193 +136,106 @@ class LCAClassifier():
         
         otu.classifyTo(node)
         if hasattr(node,"assignments"):
-            ai = AssignmentInfo
+            ai = AssignmentInfo(len(self.datasets)) 
         else:
-            pass
-            # get existing
-        #add abunances etc.
-        #...
+            ai = otu.assignments
+            ai.addFromOTU(otu, primary)
+            #Traverse tree downwards to the root
+            if (node is not self.tree.root) and (node is not self.tree.noHits):
+                self.assignOTU(otu, self.tree.getParent(node), primary=False)
         
     
-    def classify_records(self, records, abundances=None, verbose=False, 
-               euk_filter=False):
-        """Accepts a of biopython blast iterator and carries out LCA
-        assignments to a given dataset. If abundances given, it must have same order
-        for all lists as the datasets list"""
+    def classify_records(self, records, verbose=False, minFilter=True,
+               euk_filter=False, noUnknowns=False):
+        """Accepts a of biopython blast iterator and carries out LCA assignments."""
 
         for record in records:
             qName = record.query.split(" ")[0]
             
-            read_abundances={}
-            
-            #Determine read population from from otus if given
-            if abundances:
-                try:
-                    i=0
-                    if qName in abundances.keys():
-                        seq_abundances=abundances[qName]
-                    else:                   
-                        qFix = qName[:qName.find("_")]
-                        seq_abundances=abundances[qFix]
-                        
-                    for ds in datasets:
-                        read_abundances[ds] = seq_abundances[i]
-                        i+=1
-                except:
-                    print "Warning: Cannot find %s in OTU table!" %qName
-            
-            #Else determine read population from its name / annotation.
+            if qName in self.otus.keys():
+                otu = self.otus[qName]
+            elif len(self.datasets)==1:
+                # OTUs are created from Fasta files in case missing in OTU table
+                # (or in case OTU table is not given). Othwerise a new one is created
+                sys.stderr.write("Warning! Cannot find %s in sequences / otu list. Setting read \
+                abundance to 1" %qName)
+                otu = OTU(name=qName, abundances=[1])
             else:
-                if "_" in qName:
-                    try:
-                        readPopulation = int(qName.split("_")[-1].replace(".00",
-                                                                          ""))
-                    except:
-                        readPopulation = 1
-                elif "numreads=" in qName:
-                    readPopulation = int(qName[qName.find("numreads=") +
-                                               len("numreads="):])
-                    
-                elif "size=" in qName:
-                    readPopulation = int(qName[qName.find("size=") +
-                                               len("size="):-1])
-                #Or set to 1, if we cannot find
-                else:
-                    readPopulation = 1
-                
-                if datasets:
-                    for ds in datasets:
-                        read_abundances[ds]=readPopulation
-                else:
-                    ra=readPopulation
+                # An OTU table was given but this OTU still does not show up - ignore it!
+                sys.stderr.write("Warning! Cannot find %s in OTU table. Ignoring" %qName)
+                continue
             
-            # Check for minimum score and any alignemnts
-            if (record.alignments and read_abundances and
-                record.alignments[0].hsps[0].bits >= self.ms):
+            if not (record.alignments and record.alignments[0].hsps[0].bits >= self.ms):                
+                self.assignOTU(otu, self.tree.noHits)
                 
+            else:
+                #lcaNode = self.tree.common_ancestor(#the hits inside the threshold))
+                                            
                 best_hsp = record.alignments[0].hsps[0]
                 topScore = best_hsp.bits
-                if self.seqs and qName in self.seqs.keys():
-                    qSeq = self.seqs[qName]
-                else:
-                    qSeq = str(best_hsp.query).replace("-", "")
+                if not otu.sequence:                
+                    otu.sequence = str(best_hsp.query).replace("-", "")
+                
                 hitname = record.alignments[0].hit_def.split()[0]
-                node = self.getNode(hitname)
-                if not node:
-                    sys.stderr.write("Best-scoring node %s not found!\n" %
+                # Find node of best hit - this works because always accession number
+                bestNode = self.tree.getNode(hitname)
+                
+                if not bestNode:
+                    sys.stderr.write("ERROR: Best-scoring node %s not found! Cannot assign \n" %
                                      hitname)
-                    sys.stderr.write("Cannot assign read %s\n" % qName)
+                    sys.stderr.write("read (incorrectly formatted database?) %s\n" % qName)
+                    continue                
+                
+                # Iterate through rest of hits until falling below treshold
+                allHitNodes = [bestNode]
+                for a in record.alignments[1:]:
+                    if a.hsps[0].bits < float(topScore) * self.bsr:
+                        break
+                    hitname = a.hit_def.split()[0]
+                    n = self.tree.getNode(hitname)
+
+                    if not n:
+                        sys.stderr.write("Node %s not found! Ignoring. \
+                        (incorrectly formatted database?\n" % n)
+                    else:
+                        allHitNodes.append(n)
+                
+                lcaNode = self.tree.common_ancestor(allHitNodes)        
+                
+                # Take a look at similarity, print info if verbose and
+                # kick down if filter
+                hsp_sim = (float(best_hsp.identities) /
+                           float(best_hsp.align_length))
+                if verbose and hsp_sim >= .99:
+                    print ("Read %s is %s percent similar to %s" %
+                           (qName, hsp_sim * 100,
+                            record.alignments[0].hit_def))
+
+                # Push down to lowest possible and create new node unless opted out
+                while (minFilter and hsp_sim < lcaNode.assignmentMin and 
+                       lcaNode is not self.tree.root):
+                    if verbose:
+                        print ("OTU %s cannot be assigned to %s (similarity=%s)" %
+                                   (qName, lcaNode.name, hsp_sim))                    
+                    parent = lcaNode.getParent()
+                    if hsp_sim < parent.assignmentMin or noUnknowns:
+                        lcaNode = parent
+                    else:
+                        # Create unknown node - a new one for each OTU
+                        i=1
+                        u_name = "Unknown %s %s %s" % (lcaNode.name, self.tree.getRank(lcaNode), i)                        
+                        while self.tree.getNode(u_name):
+                            i+=1
+                            u_name = "Unknown %s %s %s" % (lcaNode.name, 
+                                                           self.tree.getRank(lcaNode), i)
+                        
+                        lcaNode = self.tree.addNode(u_name, parent=parent)
+                
+                # Last check whether to remove because eukaryote and if not assign  
+                if euk_filter and lcaNode.get_path[0].name == "Eukaryota":
+                    self.assignOTU(otu, self.tree.noHits)
                 else:
-                    parents = node.getPhylogeny()[1:]
-
-                    # Iterate through rest of hits until falling below treshold
-                    for a in record.alignments[1:]:
-                        if a.hsps[0].bits < float(topScore) * self.bsr:
-                            break
-                        hitname = a.hit_def.split()[0]
-                        n = self.getNode(hitname)
-
-                        if not n:
-                            sys.stderr.write("Node " + hitname +
-                                             " not found! Ignoring.\n")
-                        else:
-                            p = n.parent
-                            # iterate through parents until found in the
-                            # parents list
-                            while p not in parents:
-                                p = p.parent
-                            parents = parents[parents.index(p):]
-
-                    # Take a look at similarity, print info if verbose and
-                    # kick up if filter
-                    hsp_sim = (float(best_hsp.identities) /
-                               float(best_hsp.align_length))
-                    if verbose and hsp_sim >= .99:
-                        print ("Read %s is %s percent similar to %s" %
-                               (qName, hsp_sim * 100,
-                                record.alignments[0].hit_def))
-
-                    if self.minFilter:
-                        maxRankLimit = Tree.SPECIES
-                        maxRank = maxRankLimit
-                        d = maxRankLimit
-                        ranks = sfLimits.keys()
-                        ranks.sort()
-                        ranks.reverse()
-                        for rank in ranks:
-                            if hsp_sim < sfLimits[rank]:
-                                maxRank = rank - 1
-                            else:
-                                break
-
-                        while (maxRank < Tree.SPECIES and
-                               maxRank < parents[0].getHighestRank()):
-                            d = min(parents[0].getHighestRank(), maxRankLimit)
-                            if verbose:
-                                print ("Read %s cannot be assigned to "
-                                       "rank %s (similarity=%s)" %
-                                       (qName, Tree.depths[d],
-                                        hsp_sim))
-                            parents = parents[1:]
-
-                        if d < maxRankLimit:
-                            novelName = ("Unknown %s %s" %
-                                         (parents[0].name, Tree.depths[d]))
-                            nn = self.getNode(novelName)
-                            if nn:
-                                novelNode = nn
-                            else:
-                                depth = parents[0].getHighestRank() + 1
-                                novelNode = Node(novelName, parent=parents[0],
-                                                 depth=depth)
-                                self.addNode(novelNode)
-                            parents = [novelNode] + parents
-
-                    # Handle assignment
-                    read = Read(qName, seq=qSeq)
-                    
-                    if euk_filter and self.getNode("Eukaryota") in parents:
-                        parents = [self.noHits]
-                    
-                    if datasets:
-                        for ds in datasets:
-                            ra=read_abundances[ds]
-                            if ra>0:
-                                parents[0].assignRead(read, dataset=ds, 
-                                                  abundance=ra,
-                                                  primary=True, recursive=True)
-                    else: 
-                        parents[0].assignRead(read, dataset=None, 
-                                                  abundance=ra,
-                                                  primary=True, recursive=True)
-                    self.read_node_assignments[qName] = parents[0]
-            
-            #Below min. score
-            elif read_abundances:
-                #No hits
-                if self.seqs and qName in self.seqs.keys():
-                    qSeq = self.seqs[qName]
-                elif record.alignments:
-                    qSeq = record.alignments[0].hsps[0].query.replace("-", "")
-                else:
-                    qSeq = None
-                nhr = Read(name=qName, seq=qSeq)
-                if datasets:
-                    for ds in datasets:
-                        ra=read_abundances[ds]
-                        if ra>0:
-                            self.noHits.assignRead(nhr, dataset=ds, abundance=ra,
-                                                primary=True)
-                            self.root.assignRead(nhr, dataset=ds, abundance=ra, 
-                                             primary=False)
-                else:
-                    self.noHits.assignRead(nhr, dataset=ds, abundance=ra,
-                                                primary=True)
-                    
-                    self.root.assignRead(nhr, dataset=ds, abundance=ra, 
-                                             primary=False)
-                    
-                self.read_node_assignments[qName] = self.noHits
+                    self.assignOTU(otu, lcaNode)          
 
 
     def setBitscoreRange(self, percent):
@@ -332,29 +243,7 @@ class LCAClassifier():
 
     def setMinScore(self, minScore):
         self.ms = minScore
-        
-    def printAssignmentsRDPQual(self, node, dataset=None, printFile=None,
-                                 newTabStyle=False):
-        assignments = node.getAssignment(dataset)
-        if assignments and assignments.primReads:
-
-            for r in assignments.primReads:
-                toPrint = (">%s\t%s\n" %
-                           (r.name,
-                            node.getPhylogenyRDPStyle(
-                                      root=False, newTabStyle=newTabStyle)))
-                for line in self.qual[str(r.name)].format("qual").split("\n")[1:]:
-                    toPrint+=(line + " ")
-                if printFile:
-                        printFile.write(toPrint + "\n")
-                else:
-                    print toPrint
-        if assignments:
-            for child in node.children:
-                self.printAssignmentsRDPQual(node=child, dataset=dataset, 
-                                              printFile=printFile,
-                                              newTabStyle=newTabStyle)
-                
+    
     def writeBIOMTable(self, bTable,biomOut):
  
         taxonomy_dict = {}
@@ -378,8 +267,7 @@ class LCAClassifier():
                 
             fastaOut.write(">%s %s\n%s\n" % (seqName, 
                                            node.getPhylogenyRDPStyle(root=False), 
-                                           sn))
-            
+                                           sn))            
             
     def writeOTUsWithAssignments(self, otusOut, abundances, datasets, sep="\t"):
         otusOut.write("OTU"+sep)
@@ -440,14 +328,6 @@ def main():
                             "rank-identity is not met (3% for species, 5% for "
                             "genera, 10% for family"))
 
-#     parser.add_option("-u", "--includeunknown",
-#                       action="store_true", dest="outputNovel",
-#                       default=False,
-#                       help=('When the minimum percent identity is is not met, '
-#                             'sequences are classified as "unknown". By '
-#                             'default this is not hidden from the composition '
-#                             'table.'))
-
     parser.add_option("-m", "--minabundance",
                       dest="mintaxonabundance",
                       default=0.0,
@@ -455,14 +335,7 @@ def main():
                             "the relative abundance table (measured in the dataset where " 
                             "it is most abundant; default=0."))
     
-    parser.add_option("-i", "--fastain",
-                      dest="fastafile",
-                      type="str",
-                      default=None,
-                      help=("FASTA-file specifying *all* sequences "
-                            "to be classified. (Unless specified, fasta-"
-                            "output is written using BLAST alignments only.)"))
-    
+
     parser.add_option("-t", "--otuin",
                       dest="otus",
                       type="str",
@@ -481,6 +354,18 @@ def main():
                            "for the sequences classified. Unless specified, "
                            "one dataset per Blast output file (XML) is assumed. "
                            "Cannot be used with option --otuin."))
+    
+    parser.add_option("-i", "--fastain",
+                      dest="fastafile",
+                      type="str",
+                      default=None,
+                      help=("FASTA-file specifying *all* sequences "
+                            "to be classified. (Unless specified, fasta-"
+                            "output is written using BLAST alignments only.)"
+                            "Note: Abundance data will be taken from sequence"
+                            "names as given in this file unless OTU table or BIOM"
+                            "file is also specified! This is not compatible with"
+                            "using several XML files to distinguish datasets"))
     
     
     parser.add_option("-q", "--qualin",
@@ -507,11 +392,17 @@ def main():
                       action="store_true",dest='eukfilter',
                       default=False,
                       help="Filter any eukaryotic assignemnts (for comparison purpose)")
+    
+    parser.add_option('-u', '--nounknowns',
+                      action="store_true",dest='noUnknowns',
+                      default=False,
+                      help="Do not create \"Unknown\" nodes when min. similarity filter \
+                      was activated, pushing assignment to lower rank")
 
     parser.add_option('-c', '--config',
                       dest='config',
                       default=None,
-                      help=('Use custom configuration file.'))                      
+                      help=('Use custom configuration file'))                      
 
     (options, args) = parser.parse_args()
 
@@ -539,10 +430,130 @@ def main():
     
     if options.config is not None:
         config.configure(options.config)
+    
+    #Read (non-BIOM) OTU Table, if provided
+    if options.otus:
+        #Parse first line for datasets, remaining for abundances (script)
+        l=0
+        otuFile=open(options.otus,"r")
+        otus={} #Dictionary with sequence names and list for each row
+        for line in otuFile:
+            l+=1
+            if l==1 or line[0]=="#":
+                if "\t" in line:
+                    sep="\t"
+                elif "," in line:
+                    sep=","
+                elif ";" in line:
+                    sep=";"
+                else:
+                    parser.error(("No suitable delimeter found in OTU table %s"
+                              % options.otus))
+                datasets=line[:-1].split(sep)[1:]
+                
+            elif sep:
+                abd=line.split(sep)
+                seqname=abd[0]
+                seq_abundances = []
+                for a in abd[1:]:
+                    try: 
+                        ab = int(a)
+                    except:
+                        ab = int(float(a))
+                    seq_abundances.append(ab)
+                otus[seqname] = OTU(name=seqname, abundances = seq_abundances)
+            
+        otuFile.close()
         
+    #Read BIOM-format OTU-table, if provided
+    elif options.biom:
+        otus={} #Dictionary with sequence names and list for each row
+        biomFile = open(options.biom, "r")
+        bTable = biom.parse.parse_biom_table(biomFile)
+        biomFile.close()
+        datasets = list(bTable.SampleIds)
+        
+        for obs in bTable.ObservationIds:
+            seq_abundances=[]
+            for ds in datasets:
+                n_reads = int(bTable.getValueByIds(obs,ds))
+                seq_abundances.append(n_reads)
+            otus[obs] = OTU(name=obs, abundances=seq_abundances)
+
+    # Take care of fasta file. If not otus or biom also create new OTUs
+    # Otherwise assign seq
+    if options.fastafile:
+        if not (options.otus or options.biom):
+            otus = {}
+        fstream = open(options.fastafile, 'r')
+        for seq_record in SeqIO.parse(fstream, "fasta"):
+            if (options.otus or options.biom):
+                if otus.has_key(seq_record.id):
+                    otus[seq_record.id].sequence = seq_record.seq
+                else:
+                    sys.stderr.write("Warning: sequence %s not found in OTUs. Skipping" 
+                                     %seq_record.id)
+            else:
+                if "numreads=" in seq_record.id:
+                    readPopulation = int(seq_record.id[seq_record.id.find("numreads=") +
+                                             len("numreads="):])
+                     
+                elif "size=" in seq_record.id:
+                    readPopulation = int(seq_record.id[seq_record.id.find("size=") +
+                                             len("size="):-1])
+              
+                else:
+                    readPopulation = 1
+                otus[seq_record.id] = OTU(name=seq_record.id, sequence=seq_record.seq,
+                                          abundances=[readPopulation])
+   
+    if options.qualfile:
+        if not options.fastafile:
+            parser.error("Qual file given without sequence data!")
+        qstream = open(options.qualfile, 'r')
+        for q_record in SeqIO.parse(qstream, "qual"):
+            otus[q_record.id].quality = q_record
+
+
+#           
+            
+            
+    #-------- Chaos follows --------
+                    
+   
+    for a in args:
+        if a.endswith(".gz"):
+            results = gzip.open(a,"r")
+        else:
+            results = open(a)
+
+        #Parse blast (only XML)
+        records = NCBIXML.parse(results)
+
+        #Classify!
+#         if options.otus or options.biom:
+#             lca.assign(records, self.datasets, abundances, minFilter=options.minFilter
+#                        verbose=options.verbose, euk_filter=options.eukfilter,
+#                        noUnknowns=options.noUknowns)
+#         else: 
+#             pass
+            #One blast file per dataset 
+            #TODO remove this option?
+            
+#             name = a.replace(".xml", "").replace(".XML", "")
+#             name = name.replace(".gz","")
+#             self.datasets.append(name)
+            #lca.assign(records, self.datasets=[name], abundances=None, 
+             #          verbose=options.verbose, euk_filter=options.eukfilter)
+        
+        results.close()
+
+    #Crop trees from those nodes with no reads asssigned in ANY LCAClassifier
+    lca.pruneUnassigned()
+    
     #Initiate classifier instance from tree
     
-    lca = LCAClassifier("reftree", minFilter=options.minFilter,
+    lca = LCAClassifier("reftree", 
                         fastafile=options.fastafile, qualfile=options.qualfile,
                         otus=options.otus)
 
@@ -555,86 +566,6 @@ def main():
 
     lca.setBitscoreRange(options.bitScoreRange)
     lca.setMinScore(options.minScore)
-    
-    #Read (non-BIOM) OTU Table, if provided
-    if options.otus:
-        #Parse first line for datasets, remaining for abundances (script)
-        l=0
-        otuFile=open(options.otus,"r")
-        abundances={} #Dictionary with sequence names and list for each row
-        for line in otuFile:
-            l+=1
-            if l==1 or line[0]=="#":
-                if "\t" in line:
-                    sep="\t"
-                elif "," in line:
-                    sep=","
-                elif ";" in line:
-                    sep=";"
-                else:
-                    sep=None                
-                if sep:
-                    self.datasets=line[:-1].split(sep)[1:]
-                
-            elif sep:
-                abd=line.split(sep)
-                seqname=abd[0]
-                seq_abundances = []
-                for a in abd[1:]:
-                    try: 
-                        ab = int(a)
-                    except:
-                        ab = int(float(a))
-                    seq_abundances.append(ab)
-                abundances[seqname]=seq_abundances
-                
-            else:
-                parser.error(("No suitable delimeter found in OTU table %s"
-                              % options.otus))
-            
-        otuFile.close()
-        
-    #Read BIOM-format OTU-table, if provided
-    elif options.biom:
-        biomFile = open(options.biom, "r")
-        bTable = biom.parse.parse_biom_table(biomFile)
-        biomFile.close()
-        self.datasets = list(bTable.SampleIds)
-        
-        abundances = {}
-        for obs in bTable.ObservationIds:
-            seq_abundances=[]
-            for ds in self.datasets:
-                n_reads = int(bTable.getValueByIds(obs,ds))
-                seq_abundances.append(n_reads)
-            abundances[obs] = seq_abundances
-                
-   
-    for a in args:
-        if a.endswith(".gz"):
-            results = gzip.open(a,"r")
-        else:
-            results = open(a)        
-
-        #Parse blast (only XML)
-        records = NCBIXML.parse(results)
-
-        #Classify!
-        if options.otus or options.biom:
-            lca.assign(records, self.datasets, abundances, verbose=options.verbose, euk_filter=options.eukfilter)
-        else: 
-            #One blast file per dataset
-            
-            name = a.replace(".xml", "").replace(".XML", "")
-            name = name.replace(".gz","")
-            self.datasets.append(name)
-            lca.assign(records, self.datasets=[name], abundances=None, 
-                       verbose=options.verbose, euk_filter=options.eukfilter)
-        
-        results.close()
-
-    #Crop trees from those nodes with no reads asssigned in ANY LCAClassifier
-    lca.pruneUnassigned()
 
     #Write result overviews
     assignmentsCount = open(os.path.join(stub,"All_Assignments.tsv"), 'w')
@@ -642,22 +573,7 @@ def main():
     rFile = open(os.path.join(stub,"Richness.tsv"),"w")
     raFile = open(os.path.join(stub,"Relative_Abundance.tsv"),"w")
     
-    if options.fastafile:
-        allFaName = os.path.basename(options.fastafile)
-        allFaName = allFaName[:allFaName.find(".")] +"_Assigned.fasta"
-        allFasta = open(os.path.join(stub,allFaName),"w")
-        lca.printAllSequences(allFasta)
-        allFasta.close() 
-        
-        #         if fastafile:
-#             fstream = open(fastafile, 'r')
-#             for seq_record in SeqIO.parse(fstream, "fasta"):
-#                 self.seqs[seq_record.id] = seq_record.seq
-#                 
-#         if qualfile:
-#             qstream = open(qualfile, 'r')
-#             for q_record in SeqIO.parse(qstream, "qual"):
-#                 self.qual[q_record.id] = q_record
+    
         
     lca.printAssignedCount(assignmentsCount, self.datasets)
     lca.printTotalCount(totalCount, self.datasets)
@@ -686,7 +602,8 @@ def main():
         otusOut.close()
     
     #Write output file-by file
-
+    
+   
     for name in datasets:
         
         treeFile = open(os.path.join(stub,(name + "_Tree.txt")), 'w')
@@ -701,6 +618,7 @@ def main():
         
         if options.fastaOut:
             faFile = open(os.path.join(stub,(name + "_Assignments.fasta")), 'w')
+            #or lca.printAllSequences(allFasta) ???
             lca.printAssignmentsRDPFasta(name, faFile)
             faFile.close()
         

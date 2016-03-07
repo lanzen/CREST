@@ -124,8 +124,17 @@ class CRESTree(Phylo.BaseTree.Tree):
         if len(path) > 1:
             return path[2]
         else:
-            return self.root            
-
+            return self.root
+    
+    def getRank(self, node):
+        """Return the name of the rank of the node"""
+        node = self.verifyNode(node)
+        path = node.get_path
+        depth = len(path)
+        if depth > CRESTree.SUBSPECIES:
+            depth = CRESTree.SUBSPECIES
+        return CRESTree.depths[depth]
+        
     
     def deleteNode(self, node, moveUpChildren=False):
         """Removes node from tree structure. Still retains the disconnected
