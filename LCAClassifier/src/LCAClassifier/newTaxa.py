@@ -1,5 +1,6 @@
 import sys
 import re
+from collections import deque
 from types import StringType, IntType
 from Bio import Phylo
 from numpy import longfloat
@@ -134,8 +135,22 @@ class CRESTree(Phylo.BaseTree.Tree):
         if depth > CRESTree.SUBSPECIES:
             depth = CRESTree.SUBSPECIES
         return CRESTree.depths[depth]
-        
     
+    def getTaxonomyPath(self, node):
+        """Return the taxonomic path from root to the node"""
+        if node == self.noHits:
+            return ["No hits"]
+        else:
+            path = self.get_path(node).reverse()
+            tax = ["Root"]
+            for clade in path:
+                tax.append(clade.name)
+            return path
+        
+    def getFormattedTaxonomyPath(self, node):
+        """Return string formatted, separated by semicolon"""
+        return ";".join(i for i in self.getTaxonomyPath(node))
+
     def deleteNode(self, node, moveUpChildren=False):
         """Removes node from tree structure. Still retains the disconnected
         node in self.nodes dict.
@@ -145,15 +160,16 @@ class CRESTree(Phylo.BaseTree.Tree):
         """
         node = self.verifyNode(node)
         if not node:                
-            return
-
-        if moveUpChildren or node.is_terminal():
+            return        
+        
+        if not (moveUpChildren or node.is_terminal()):
             self.collapse(node)
-            if node.name in self.nodeNames:
-                del self.nodeNames[node.name]        
-        else:
             for child in self.getImmediateChildren(node):
                 self.deleteNode(child, moveUpChildren=False)
+        self.collapse(node)
+        if node.name in self.nodeNames:
+                del self.nodeNames[node.name]
+
             
     def moveNode(self, node, newParent):
         """Moves node to new parent. Does not touch the nodeMapping"""
@@ -191,5 +207,18 @@ class CRESTree(Phylo.BaseTree.Tree):
                 grandchildren.append(self.getImmediateChildren(child))
             children = grandchildren
         return children    
+    
+    def pruneUnassigned(self):
+        """
+        Removes all clades that do not have assignments ("assignments" attribute).
+        Performs a queued depth-first search of all terminal nodes, removing them and then
+        queueing their parents for check if they have no assignments, until queue is empty.
+        """
+        q = deque(self.get_terminals())
+        while len(q)>0:
+            nextClade = q.popleft()
+            if not hasattr(nextClade,"assignments"):
+                q.append(self.getParent(nextClade))
+                self.deleteNode(nextClade, moveUpChildren=True)
 
 

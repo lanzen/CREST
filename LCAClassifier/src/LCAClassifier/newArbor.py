@@ -8,6 +8,15 @@ from LCAClassifier.taxa import Tree, Node, Read
 
 class ARBor(Tree):
     """A Tree with specific functions for handling data exported from ARB"""
+    
+    sfLimits = {Tree.SPECIES: .99, # 97
+            Tree.GENUS: .97, # 95
+            Tree.FAMILY: .95, # 90
+            Tree.ORDER: .90, # 85
+            Tree.CLASS: .85, # 80
+            Tree.PHYLUM: .80   # 75
+            }
+
 
     nonSpeciesKeys = ["uncultured", "sp.", "unidentified", "metagenome",
                       "enrichment", "clone"]

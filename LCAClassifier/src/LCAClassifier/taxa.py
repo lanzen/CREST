@@ -477,7 +477,7 @@ class Tree:
         ## 2014-12-08 - due to problem with unknowns never counted in assigned
          
         datasetheaders = ""
-        for dataset in datasets:
+        for dataset in self.datasets:
             datasetheaders += (dataset + "\t")
         datasetheaders = datasetheaders[:-1]
         if not outFile:

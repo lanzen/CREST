@@ -461,8 +461,8 @@ def main():
     if options.config is not None:
         config.configure(options.config)
         
-    #Initiate classifier instance from tree
-    
+    #Initiate classifier instance from tree    
+    #TODO change to Phylo package
     lca = LCAClassifier("reftree", minFilter=options.minFilter,
                         fastafile=options.fastafile, qualfile=options.qualfile,
                         otus=options.otus)
@@ -471,8 +471,9 @@ def main():
                (config.DATABASES[options.dbname], options.dbname))
     treFile = ("%s/%s.tre" %
                (config.DATABASES[options.dbname], options.dbname))
-
+    
     lca.initFrom(mapFile, treFile) #, options.synFile)
+    
 
     lca.setBitscoreRange(options.bitScoreRange)
     lca.setMinScore(options.minScore)

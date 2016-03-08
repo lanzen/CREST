@@ -94,7 +94,7 @@ class AssignmentInfo:
                              float(2*self.doubletons[i]))+ self.otuRichness[i])
             else:
                 chao.append(None)
-                
+                                
         return chao
         
 class OTU:
@@ -146,20 +146,26 @@ class LCAClassifier():
         
     
     def classify_records(self, records, verbose=False, minFilter=True,
-               euk_filter=False, noUnknowns=False):
-        """Accepts a of biopython blast iterator and carries out LCA assignments."""
+               euk_filter=False, noUnknowns=False, uniqueDataset=None):
+        """
+        Accepts a of biopython blast iterator and carries out LCA assignments.
+        Arguments correspond to parser options except uniqueDataset, which is 
+        given if the dataset name comes from a BLAST file rather than OTU table
+        (abundance set to 1 and only in the unique dataset i.e. reads rather than OTUs)
+        """
 
         for record in records:
             qName = record.query.split(" ")[0]
             
             if qName in self.otus.keys():
                 otu = self.otus[qName]
-            elif len(self.datasets)==1:
+            elif uniqueDataset:
                 # OTUs are created from Fasta files in case missing in OTU table
                 # (or in case OTU table is not given). Othwerise a new one is created
                 sys.stderr.write("Warning! Cannot find %s in sequences / otu list. Setting read \
                 abundance to 1" %qName)
-                otu = OTU(name=qName, abundances=[1])
+                abFulFix = [int(uniqueDataset==self.datasets[i]) for i in range(len(self.datasets))]
+                otu = OTU(name=qName, abundances=abFulFix)
             else:
                 # An OTU table was given but this OTU still does not show up - ignore it!
                 sys.stderr.write("Warning! Cannot find %s in OTU table. Ignoring" %qName)
@@ -200,7 +206,12 @@ class LCAClassifier():
                     else:
                         allHitNodes.append(n)
                 
-                lcaNode = self.tree.common_ancestor(allHitNodes)        
+                # Lowest common ancestor
+                lcaNode = self.tree.common_ancestor(allHitNodes)
+                
+                # If the LCA is a terminal node it is just a sequence and should be pushed down
+                if lcaNode.is_terminal():
+                    lcaNode = self.tree.getParent(lcaNode)
                 
                 # Take a look at similarity, print info if verbose and
                 # kick down if filter
@@ -244,44 +255,127 @@ class LCAClassifier():
     def setMinScore(self, minScore):
         self.ms = minScore
     
-    def writeBIOMTable(self, bTable,biomOut):
- 
+    def writeBIOMTable(self, bTable, biomOut):
         taxonomy_dict = {}
         for obs in bTable.ObservationIds:
             try:
-                aNode = self.read_node_assignments[obs]
-                name_list = aNode.getPhylogenyNameList()
+                aNode = self.otus[obs]
+                name_list = aNode.getTaxonomyPath
                 taxonomy_dict[obs] = {"taxonomy":name_list}
             except:
                 sys.stderr.write("Problem with assignment of",obs,": classification not found!")
-                taxonomy_dict[obs] = {"taxonomy":self.noHits.getPhylogenyNameList()}
+                taxonomy_dict[obs] = {"taxonomy":self.tree.noHits.getTaxonomyPath()}
         bTable.addObservationMetadata(taxonomy_dict)
         biomOut.write(bTable.getBiomFormatJsonString("CREST"))
         
-    def printAllSequences(self, fastaOut):
-        for seqName, node in self.read_node_assignments.iteritems():
+    def writeAllSequences(self, fastaOut, writeQual=False):
+        for key in self.otus.keys():
+            otu = self.otus[key]
             try:
-                sn = self.seqs[seqName]
+                if writeQual:
+                    seq=otu.quality
+                else:
+                    seq=otu.sequence
+                fastaOut.write(">%s %s\n%s\n" % (otu.name, self.tree.getFormattedTaxonomyPath(otu.classification),                                               
+                                                 seq))
             except:
-                sn = self.seqs[seqName[:seqName.find("_")]]
-                
-            fastaOut.write(">%s %s\n%s\n" % (seqName, 
-                                           node.getPhylogenyRDPStyle(root=False), 
-                                           sn))            
+                sys.stderr.write("Problem with assignment of",otu,": classification not found!")
+                fastaOut.write(">%s %s\n%s\n" % (otu.name, "No classification!",                                               
+                                                 otu.sequence))
             
-    def writeOTUsWithAssignments(self, otusOut, abundances, datasets, sep="\t"):
+    def writeOTUsWithAssignments(self, otusOut, sep="\t"):
         otusOut.write("OTU"+sep)
-        for ds in datasets:
+        for ds in self.datasets:
             otusOut.write(ds+sep)
         otusOut.write("classification\n")
-        for seqName in abundances.keys():
-            otusOut.write(seqName)
-            for ab in abundances[seqName]:
-                otusOut.write("%s%i" % (sep, ab))
-            taxonomy = self.read_node_assignments[seqName].getPhylogenyRDPStyle(root=False)
-            otusOut.write("%s%s\n" % (sep, taxonomy))
+        for key in self.otus.keys():
+            otu = self.otus[key]
+            otusOut.write(otu.name)
+            otusOut.write (sep.join(i for i in otu.abundances))            
+            otusOut.write("%s%s\n" % (sep,self.tree.getFormattedTaxonomyPath(otu.classification)))
+            
+    def writeAssignedCount(self, outFile, countType="totalAbundance", depths=CRESTree.depths):
+        """
+        Writes all assignments, either direct ones (not including children), total ones (incl.), or
+        richness (no. of OTUs assigned)
+        """        
+        datasetheaders = "\t".join(ds for ds in self.datasets)       
+        outFile.write("Rank\tTaxonpath\tTaxon\t%s\n" % datasetheaders)
 
+        for i in depths:
+            nodes = self.tree.getChildrenByRank(i)
+            for node in nodes:                
+                if not node.assignments:
+                    sys.stderr.write("Warning: node has no assignments - "
+                                     "pruning has failed (this should not happen)!")
+                    continue
+                aToPrint = getattr(node.assignments,countType)
+                formattedAb =  "\t".join(aToPrint)
+                outFile.write("%s\t%s\t%s\t%s\n" % (CRESTree.depths[i],
+                                        self.tree.getFormattedTaxonomyPath(),
+                                        node.name, formattedAb))
+                
+    def writeChaoEstimates(self, outFile, depths=CRESTree.depths):
+        datasetheaders = "\t".join(ds for ds in self.datasets)       
+        outFile.write("Rank\tTaxonpath\tTaxon\t%s\n" % datasetheaders)
 
+        for i in depths:
+            nodes = self.tree.getChildrenByRank(i)
+            for node in nodes:                
+                if not node.assignments:
+                    sys.stderr.write("Warning: node has no assignments - "
+                                     "pruning has failed (this should not happen)!")
+                    continue
+                chaos = node.assignments.getChaoEstimate
+                formattedAb =  "\t".join(chaos)
+                outFile.write("%s\t%s\t%s\t%s\n" % (CRESTree.depths[i],
+                                        self.tree.getFormattedTaxonomyPath(),
+                                        node.name, formattedAb))
+                
+    def writeRelativeAbundances(self, outFile,minimalMaxAbundance=0, depths=CRESTree.depths): 
+        
+        if not self.tree.root.assignments or sum(self.tree.root.assignments.getTotalAbundances)==0:
+            sys.stderr.write("Error: No assignments done for any dataset!")
+            return
+        rootAbRaw = [float(i) for i in self.tree.root.assignments.getTotalAbundances]
+        i=0
+        rootAb=[]
+        keep = []
+        datasetheaders = ""
+        for ab in rootAbRaw:
+            i+=1
+            if ab>0:
+                rootAb.append(ab)
+                keep.append(True)
+                datasetheaders += self.datasets[i]+"\t"
+            else:
+                keep.append(False)
+        
+        outFile.write("Rank\tTaxonpath\tTaxon\t%s\n" % datasetheaders[:-1])
+
+        for i in depths:
+            nodes = self.tree.getChildrenByRank(i)
+            for node in nodes:                
+                if not node.assignments:
+                    sys.stderr.write("Warning: node has no assignments - "
+                                     "pruning has failed (this should not happen)!")
+                    continue
+                taRaw = node.assignments.getTotalAbundances()
+                i=0
+                ra=[]
+                for a in taRaw:
+                    i+=0
+                    if keep[i]:
+                        ra.append(float(a)/rootAb[i])
+                
+                #Check min. abundance
+                aboveMin = True in [i>=minimalMaxAbundance for i in ra]
+                if aboveMin:
+                    formattedAb =  "\t".join(ra)
+                    outFile.write("%s\t%s\t%s\t%s\n" % (CRESTree.depths[i],
+                                        self.tree.getFormattedTaxonomyPath(),
+                                        node.name, formattedAb))
+                    
 def main():
 
     parser = OptionParser()
@@ -291,7 +385,6 @@ def main():
                       type="string",
                       default="CREST_Results",
                       help="name of output directory for classification results ")
-
 
     parser.add_option("-d", "--dbname",
                       dest="dbname",
@@ -314,12 +407,6 @@ def main():
                       help=("minimum bit-score given as an integer; "
                             "default = 155"))
 
-    parser.add_option("-n", "--normalisetobase",
-                      action="store_true", dest="normBase",
-                      default=False,
-                      help=("Normalise domain level and lower to those "
-                            "classified at base level"))
-
     parser.add_option("-f", "--nofilter",
                       action="store_false", dest="minFilter",
                       default=True,
@@ -333,8 +420,7 @@ def main():
                       default=0.0,
                       help=("Minimum relative abundance for a taxon to be included in "
                             "the relative abundance table (measured in the dataset where " 
-                            "it is most abundant; default=0."))
-    
+                            "it is most abundant; default=0."))    
 
     parser.add_option("-t", "--otuin",
                       dest="otus",
@@ -342,8 +428,7 @@ def main():
                       default=None,
                       help=("OTU-table in tab- or comma-separated format, " 
                            "specifying the distribution across datasets "
-                           "for the sequences classified. Unless specified, "
-                           "one dataset per Blast output file (XML) is assumed. "))
+                           "for the sequences classified."))
     
     parser.add_option("-b", "--biom",
                       dest="biom",
@@ -351,8 +436,7 @@ def main():
                       default=None,
                       help=("OTU-table in BIOM-format, " 
                            "specifying the distribution across datasets "
-                           "for the sequences classified. Unless specified, "
-                           "one dataset per Blast output file (XML) is assumed. "
+                           "for the sequences classified."
                            "Cannot be used with option --otuin."))
     
     parser.add_option("-i", "--fastain",
@@ -373,15 +457,8 @@ def main():
                       type="str",
                       default=None,
                       help=("Output sequences from submitted FASTA quality " 
-                      "file with annotation"))   
+                      "file with annotation"))       
     
-    
-    parser.add_option("-a", "--fastaout",
-                      action="store_true", dest="fastaOut",
-                      default=False,
-                      help="Print classified sequences in FASTA format for each dataset")   
-    
-  
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose",
                       default=False,
@@ -425,8 +502,7 @@ def main():
         parser.error("Directory %s already exists! Please enter a different output directory "
                          "(using option -o)" % options.directory)
         
-    
-    #Use custom configuration if config file given
+   #Use custom configuration if config file given
     
     if options.config is not None:
         config.configure(options.config)
@@ -485,6 +561,7 @@ def main():
     if options.fastafile:
         if not (options.otus or options.biom):
             otus = {}
+            datasets = [options.fastafile[:options.fastafile.find(".")]]
         fstream = open(options.fastafile, 'r')
         for seq_record in SeqIO.parse(fstream, "fasta"):
             if (options.otus or options.biom):
@@ -496,7 +573,7 @@ def main():
             else:
                 if "numreads=" in seq_record.id:
                     readPopulation = int(seq_record.id[seq_record.id.find("numreads=") +
-                                             len("numreads="):])
+                                             len("numreads="):-1])
                      
                 elif "size=" in seq_record.id:
                     readPopulation = int(seq_record.id[seq_record.id.find("size=") +
@@ -514,80 +591,74 @@ def main():
         for q_record in SeqIO.parse(qstream, "qual"):
             otus[q_record.id].quality = q_record
 
-
-#           
-            
-            
-    #-------- Chaos follows --------
-                    
-   
-    for a in args:
-        if a.endswith(".gz"):
-            results = gzip.open(a,"r")
-        else:
-            results = open(a)
-
-        #Parse blast (only XML)
-        records = NCBIXML.parse(results)
-
-        #Classify!
-#         if options.otus or options.biom:
-#             lca.assign(records, self.datasets, abundances, minFilter=options.minFilter
-#                        verbose=options.verbose, euk_filter=options.eukfilter,
-#                        noUnknowns=options.noUknowns)
-#         else: 
-#             pass
-            #One blast file per dataset 
-            #TODO remove this option?
-            
-#             name = a.replace(".xml", "").replace(".XML", "")
-#             name = name.replace(".gz","")
-#             self.datasets.append(name)
-            #lca.assign(records, self.datasets=[name], abundances=None, 
-             #          verbose=options.verbose, euk_filter=options.eukfilter)
+    # Control that not fasta file is given in combination with several blast files
+    if len(a) > 1 and options.fastafile and not (options.otus or options.biom) :
+        parser.error("FASTA file used to generate OTUs but several blast outputs given representing"
+                     "individual datasets!")
         
-        results.close()
-
-    #Crop trees from those nodes with no reads asssigned in ANY LCAClassifier
-    lca.pruneUnassigned()
+    # In some cases use blast outputs to create dataset info
+    elif not options.fastafile and not options.otus and not options.biom:
+        datasets = []
+        for a in args:
+            datasets.append(a[:a.find(".")])    
     
-    #Initiate classifier instance from tree
-    
-    lca = LCAClassifier("reftree", 
-                        fastafile=options.fastafile, qualfile=options.qualfile,
-                        otus=options.otus)
-
     mapFile = ("%s/%s.map" %
                (config.DATABASES[options.dbname], options.dbname))
     treFile = ("%s/%s.tre" %
                (config.DATABASES[options.dbname], options.dbname))
 
-    lca.initFrom(mapFile, treFile) #, options.synFile)
-
+    reftree = CRESTree(treFile, mapFile)
+    if otus:
+        lca = LCAClassifier(name = "classifier instance", tree = reftree,
+                            datasets = datasets, otus=otus)
+    else:
+        lca = LCAClassifier(name = "classifier instance", tree = reftree,
+                            datasets = datasets)
+        
     lca.setBitscoreRange(options.bitScoreRange)
     lca.setMinScore(options.minScore)
+    
+   
+    # Parse blast files! 
+    for a in args:
+        if a.endswith(".gz"):
+            results = gzip.open(a,"r")
+        else:
+            results = open(a)
+        #Parse blast (only XML)
+        records = NCBIXML.parse(results)        
+        if otus:
+            ud = None
+        else:
+            ud = a[:a.find(".")]     
 
+        lca.classify_records(records, minFilter=options.minFilter,
+                        verbose=options.verbose, euk_filter=options.eukfilter,
+                        noUnknowns=options.noUknowns, uniqueDataset=ud)
+        results.close()
+
+    # Remove empty nodes
+    lca.tree.pruneUnassigned()      
+    
     #Write result overviews
     assignmentsCount = open(os.path.join(stub,"All_Assignments.tsv"), 'w')
     totalCount = open(os.path.join(stub,"All_Cumulative.tsv"), 'w')
     rFile = open(os.path.join(stub,"Richness.tsv"),"w")
+    chaoFile = open(os.path.join(stub,"Chao1.tsv"),"w")
     raFile = open(os.path.join(stub,"Relative_Abundance.tsv"),"w")
     
     
-        
-    lca.printAssignedCount(assignmentsCount, self.datasets)
-    lca.printTotalCount(totalCount, self.datasets)
-    #lca.printCompositionAlternative(altFile, datasets, options.outputNovel)
-    lca.printRichness(rFile, datasets)
-    lca.printRelativeAbundances(raFile, datasets, 
-                                minimalMaxAbundance=float(options.mintaxonabundance),
-                                normaliseToBase=options.normBase)
-    
+    lca.writeAssignedCount(assignmentsCount, "assignedAbundance")
+    lca.writeAssignedCount(totalCount, "totalAbundance")
+    lca.writeAssignedCount(rFile, "otuRichness")
+    lca.wrriteChaoEstimates(chaoFile)
+    #IMPLEMENT!
+    lca.writeRelativeAbundances(raFile,minimalMaxAbundance=float(options.mintaxonabundance))    
     assignmentsCount.close()
     totalCount.close()
     rFile.close()
-    raFile.close()
-    
+    chaoFile.close()
+    raFile.close()    
     
     #Add taxonomy to BIOM file if used
     if options.biom:
@@ -595,49 +666,32 @@ def main():
         lca.writeBIOMTable(bTable,biomOut)
         biomOut.close()
     
-    #Add taxonomy to OTU table if supplied
+    #Add taxonomy to OTU table (new in v3: always do also if not supplied)
     if options.otus:
-        otusOut = open(os.path.join(stub,os.path.basename(options.otus)),"w")
-        lca.writeOTUsWithAssignments(otusOut, abundances=abundances, datasets=datasets, sep=sep)
-        otusOut.close()
+        otusOut = open(os.path.join(stub,os.path.basename(options.otus)),"w")        
+    else:
+        otusOut = open(os.path.join(stub,os.path.basename(otus.csv)),"w")
+        sep="\t"
+    lca.writeOTUsWithAssignments(otusOut, sep=sep)
+    otusOut.close()
     
-    #Write output file-by file
-    
+    #Write fasta file (new in v3: always do this)
+    if options.fastafile:
+        allFaName = os.path.basename(options.fastafile)
+        allFaName = allFaName[:allFaName.find(".")] +"_Assigned.fasta"
+    else:
+        allFaName = "Aligned_assignments.fasta"
+    allFasta = open(os.path.join(stub,allFaName),"w")
+    lca.writeAllSequences(allFasta)
+    allFasta.close()    
+  
+    if options.qualfile: 
+        qualName = os.path.basename(options.qualfile)
+        qualName = qualName[:qualName.find(".")] +"_Assigned.fasta.qual"
+        qualFile= open(os.path.join(stub,(qualName)), 'w')
+        lca.writeAllSequences(qualFile,writeQual=True) 
+        qualFile.close()      
    
-    for name in datasets:
-        
-        treeFile = open(os.path.join(stub,(name + "_Tree.txt")), 'w')
-        lca.printAsTree(popDataset=name, showLeaves=True, printFile=treeFile)
-        treeFile.close()
-        
-        
-        if options.rdpOut:
-            rdpFile = open(os.path.join(stub,(name + "_Assignments.tsv")), 'w')
-            lca.printAssignmentsRDPStyle(name, rdpFile)
-            rdpFile.close()       
-        
-        if options.fastaOut:
-            faFile = open(os.path.join(stub,(name + "_Assignments.fasta")), 'w')
-            #or lca.printAllSequences(allFasta) ???
-            lca.printAssignmentsRDPFasta(name, faFile)
-            faFile.close()
-        
-        if options.qualfile:
-            qualFile= open(os.path.join(stub,(name + "_Assignments.fasta.qual")), 'w')
-            lca.printAssignmentsRDPQual(node=lca.root, dataset=name, printFile=qualFile)
-            qualFile.close()
-        
-        tabFile = open(os.path.join(stub,(name + "_Composition.tsv")), 'w')
-        
-        for level in Tree.depths:
-            tabFile.write("Assingments at %s level\n\n" %
-                          Tree.depths[level])
-            lca.printPopulationsAtDepth(level, outFile=tabFile, dataset=name,
-                                        normaliseToBase=options.normBase)
-            tabFile.write("\n")
-        tabFile.close()
-        
-
 
 if __name__ == "__main__":
 
