@@ -10,7 +10,7 @@ SilvaMod was derived by manual curation of the SILVA nr SSU Ref. It supports SSU
 
 Greengenes is an alternative reference database for classification of prokaryotic 16S, curated and maintained by The Greengenes Database Consortium. Release supported: May 2013
 
-Unite seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v6, 2014-02-09
+Unite seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v7, 2016-01-31
 
 ## Installation
 
