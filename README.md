@@ -12,6 +12,8 @@ Greengenes is an alternative reference database for classification of prokaryoti
 
 Unite seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v7, 2016-01-31
 
+To update your database files, new versions can be downloaded separately (wihtout the need to install a new version of CREST), from http://services.cbu.uib.no/supplementary/crest
+
 ## Installation
 
 LCAClassifier uses pairwise alignments to a reference database of marker genes (such as SSU rRNA) as input. Alignment files must be in XML format and produced by the NCBI blastall suit. For best performance, we recommend the Megablast algorithm. Megablast is both implemented as a separate program in NCBI's legacy Blastall suite, that can be downloaded from ftp://ftp.ncbi.nlm.nih.gov/blast/executables/release/LATEST/; or as part of the _blastn_ program of the newer BLAST+ implementation, available at ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/. The later implementation is slightly faster.
