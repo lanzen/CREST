@@ -1,2 +1,2 @@
-python bootstrap.py -v 2.2.1
+python bootstrap.py
 bin/buildout
