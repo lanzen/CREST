@@ -7,24 +7,6 @@ from Bio import Phylo
 import biom.table
 import collections
 
-class CachingTree(Phylo.BaseTree.Tree):
-    """Uses caching of paths - thanks to Travis Wrightsman"""    
-    def __init__(self, tree):
-        self.__dict__.update(tree.__dict__)
-        self._paths = {}
-
-    def get_path(self, target, **kwargs):
-        if not target in self._paths:
-            p = Phylo.BaseTree.Tree.get_path(self, target=target, **kwargs)
-            self._paths[target] = p
-            for i in range(1,len(p)-1):
-                self._paths[p[-i-1]] = p[:-i]
-                
-        return self._paths[target]
-    
-    def clearAllPaths(self):
-        self._pahts = {}
-    
 class CRESTree:
     """ Instances have specific methods and attributes needed for classification and 
     stores the actual CachingTree instance as self.tree"""
@@ -73,13 +55,12 @@ class CRESTree:
     def __init__(self, rootedTree=None):
         
         if rootedTree:
-            self.tree = rootedTree
-            #self.tree = CachingTree(rootedTree)            
+            self.tree = rootedTree                        
             self.root = self.tree.root     
         else:
             self.tree = Phylo.BaseTree.Tree(name="Tree")
-            #self.tree = CachingTree(Phylo.BaseTree.Tree(name="Tree"))
             self.root = Phylo.BaseTree.Clade(name="root")
+            self.tree.root = self.root
                 
         self.nodeNames = {} # name as key, node as value
         self.nodeIDs = {} # id as key, node as value
@@ -87,9 +68,7 @@ class CRESTree:
         self.parents = {} # dict for caching parents
         
         
-        
-     
-        
+               
     def getNode(self, name):
         if not name in self.nodeNames:
             sys.stderr.write("Error: Node %s not found!\n" % name)
@@ -116,14 +95,14 @@ class CRESTree:
             else:
                 return node
         else: 
-            sys.stderr.write("Verification Error: Node %s is a strange instance" %nn)
+            sys.stderr.write("Verification Error: Node %s is a strange instance|n" %nn)
             return        
         
 
     def addNode(self, nodename, parent, assignmentMin=0):
         #insert instead of append?
         if nodename in self.nodeNames:
-            sys.stderr.write("Node name \"%s\" is not unique - not added" % nodename)
+            sys.stderr.write("Node name \"%s\" is not unique - not added|n" % nodename)
             return None
         node = Phylo.Newick.Clade(name=nodename)
         parent = self.verifyNode(parent)
@@ -238,7 +217,7 @@ class CRESTree:
             return
         oldParent = self.getParent(node)
         oldParent.clades.pop(oldParent.clades.index(node))
-        newParent.append(node)
+        newParent.clades.append(node)
         self.parents[node] = newParent
         #self.tree.clearAllPaths()
     

@@ -7,6 +7,7 @@ Assumes  accession as last item in fasta header.
 import sys
 
 from LCAClassifier.arbor import ARBor
+
 import Bio.SeqIO
 from optparse import OptionParser
 
@@ -41,13 +42,11 @@ def main():
     
     parser.add_option("-g", "--greengenes_ranks",
                       action="store_true",dest="GGRankInfo",
-                      type="boolean",
                       default=False,
                       help="Greengenes style explicit rank info in NDS files")
     
     parser.add_option("-p", "--nucleus_only",
                       action="store_false",dest="euk_rearrange",
-                      type="boolean",
                       default=True,
                       help="Do not rearrange eukaryotic 16S (plastids / mitochondria) as separate domains")
     

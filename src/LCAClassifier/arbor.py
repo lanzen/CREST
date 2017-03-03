@@ -11,12 +11,18 @@ from LCAClassifier.taxa import CRESTree
 # TODO completely revise to comply with new map format and enforce stricter family names
 
 
-sfLimits = {CRESTree.SPECIES: .99, # 97
+sfLimits = {CRESTree.SUBSPECIES: 1.0, # 97
+            CRESTree.SPECIES: .99, # 97
             CRESTree.GENUS: .97, # 95
             CRESTree.FAMILY: .95, # 90
             CRESTree.ORDER: .90, # 85
             CRESTree.CLASS: .85, # 80
-            CRESTree.PHYLUM: .80   # 75
+            CRESTree.PHYLUM: .80,   # 75
+            CRESTree.KINGDOM: 0,   
+            CRESTree.SUPERKINGDOM: 0,
+            CRESTree.DOMAIN: 0,
+            CRESTree.META: 0,
+            CRESTree.ROOT: 0
             }
 
 ggCodes = {"d": CRESTree.DOMAIN,
@@ -32,18 +38,17 @@ class ARBor(CRESTree):
     """A Tree with specific functions for handling data exported from ARB"""
 
     nonSpeciesKeys = ["uncultured", "sp.", "unidentified", "metagenome",
-                      "enrichment", "clone"]
+                      "enrichment", "clone", "Unknown"]
     
     def __init__(self, name=None, rearrangeOrganelles=True, GGRankInfo=False):
         CRESTree.__init__(self)        
         
         self.rearrangeOrganelles = rearrangeOrganelles
         self.GGMode = GGRankInfo
-        self
         
         self.nodeIDs[1] = self.root        
         self.tree.root.nodeID = self.lastID = 1
-        self.rejected = [] # accessions not to add
+        #self.rejected = [] # accessions not to add
         
         # Accession as key, node to which it points as value
         self.accessions = {}
@@ -63,10 +68,11 @@ class ARBor(CRESTree):
 
     def addNode(self, nodename, parent, assignmentMin=0):
         newNode =  CRESTree.addNode(self, nodename, parent, assignmentMin=assignmentMin)
-        self.lastID += 1
-        nodeID = self.lastID
-        newNode.nodeID = nodeID
-        self.nodeIDs[nodeID] = newNode
+        if newNode:
+            self.lastID += 1        
+            nodeID = self.lastID
+            newNode.nodeID = nodeID
+            self.nodeIDs[nodeID] = newNode
         return newNode
 
     def parseSilvaNDS(self, filename):
@@ -102,12 +108,15 @@ class ARBor(CRESTree):
             ncbi_name = parts[2].replace("\n", "")
             
             if self._useNCBINameInTaxonomy(ncbi_name):
-                taxa.append(ncbi_name)  
+                taxa.append(ncbi_name)
+            else:
+                while taxa and not self._useNCBINameInTaxonomy(taxa[-1]):
+                    taxa.pop()
                         
             # Deal with organells structure
             # (the most sensible is to include an organelle node 
-            # named "chloroplast" or "mitochondria" anywhere in the taxonomy
-            # as in Silva, but the possibility of an extra fourth column ç
+            # named "chloroplast" or "mitochondria" anywherein the taxonomy
+            # as in Silva, but the possibility of an extra fourth column
             # kept for backwards compability)
             
             if self.rearrangeOrganelles:
@@ -115,21 +124,32 @@ class ARBor(CRESTree):
                 for k in organelleFind:
                     if ((len(parts) > 3) and k in parts[3]) or k in taxonomy:
                         parent = organelleFind[k]
-                    if k in taxa:                        
+                    if k in taxa:            
                         taxa.pop(taxa.index(k))               
             else:
                 parent = self.cellOrg
-                                                                               
-            # Now go through taxa one by one!
-            for taxon in taxa:
                 
+            # Fix organelle names
+            for taxon in taxa:               
                 if parent == self.plastid:
                     taxon+=(" (Chloroplast)")
                 elif parent == self.mito:
                     taxon+=(" (Mitochondrion)")
                     
+                                                                               
+            # Now go through taxa one by one again            
+ 
                 depth = self.getDepth(parent)+1
-                rank = CRESTree.depths(depth)
+                
+                if depth in sfLimits:
+                    alim = sfLimits[depth]
+                else:
+                    alim = 0
+                    
+                if depth > max(CRESTree.depths):
+                    depth = max(CRESTree.depths)
+                
+                rank = CRESTree.depths[depth]
                 
                 #Remove explicit rank from greengenes node since not useful
                 if self.GGMode and len(taxon)>3 and taxon[1:3]=="__":                    
@@ -142,40 +162,36 @@ class ARBor(CRESTree):
                     taxon = "%s (%s)" % (parent.name, rank)
                 
                 #Fix parent of self ambigousity error
-                elif taxon == parent.name:
-                    taxon += " (%s)" % rank
+                elif taxon == parent.name or taxon.startswith("Unknown "):
+                    taxon = "%s (%s)" % (parent.name, rank)
                 
                 #Fix incertae sedis only issues (still in 106)
                 if taxon == "Incertae Sedis" or taxon == "Incertae_sedis":
                     taxon = "%s Incertae Sedis" % parent.name                
                 
                 
-                if taxon in self.nodeNames:                    
-                    node = self.getNode(taxon)
-                    # Set new parent if parent matches
-                    if self.getParent(node) is parent:
-                        parent = node
-                    else:
-                        #Otherwise rename and add
+                while (taxon in self.nodeNames) and self.getParent(self.getNode(taxon)) is not parent:                     
+                    
+                        node = self.getNode(taxon)
+                        # Set new parent if parent matches
+                        #print "DEBUG: Parent %s, node: %s" %(parent.name, node.name)
                         taxon += " (%s)" % parent.name
-                        parent = self.addNode(nodeName=taxon + " (%s)" % parent.name,
-                                              parent=parent,assignmentMin=sfLimits(depth)) 
-                                      
+                
+                if taxon in self.nodeNames:
+                    parent = self.getNode(taxon)
                 else:
-                    # Add if not present,
-                    parent = self.addNode(nodeName=taxon,parent=parent,
-                                          assignmentMin=sfLimits(depth))
-                     
-                    if self.GGMode and dsym:
-                            self.ranks[taxon] = ggCodes[dsym]   
+                    parent = self.addNode(nodename=taxon,parent=parent,
+                                      assignmentMin=alim)
+                 
+                if self.GGMode and dsym:
+                    self.ranks[taxon] = ggCodes[dsym]
                  
             # Add accession to parent
             if not accession in self.accessions:
                 self.accessions[accession] = parent
             else:
-                self.rejected += accession
-                sys.stderr.write("Accession %s occurs more than once! Deleting.")
-            
+                #self.rejected += accession
+                sys.stderr.write("Warning: Accession %s occurs more than once.\n" % accession)
         ndsFile.close()    
 
     def processChangesMetadata(self, changeFile):
@@ -275,12 +291,13 @@ class ARBor(CRESTree):
         # later reassignment of accessions
         
         parentsToDeleted = {} # name as key, parent node as value
-        
+        print "DEBUG: Root=",self.root
         delQ = Queue.Queue()
-        delQ.put(self.tree.root)
+        for c in self.tree.root.clades:
+            delQ.put(c)
         while not delQ.empty():
             current = delQ.get()
-           
+            print "DEBUG:",current
             properRank = self._getProperRank(current)
              
             if properRank:   
@@ -289,7 +306,10 @@ class ARBor(CRESTree):
                     grandparent = self.getParent(parent)                    
                     self.deleteNode(parent, moveUpChildren=True)
                     parentsToDeleted[parent.name] = grandparent
-                    self.assignmentMin[current.name] = sfLimits[properRank]
+                    if properRank>=max(sfLimits):
+                        self.assignmentMin[current.name] = sfLimits[properRank]
+                    else:
+                        self.assignmentMin[current.name] = 0
                     
             for child in self.getImmediateChildren(current):
                 delQ.put(child)                
@@ -312,8 +332,7 @@ class ARBor(CRESTree):
             while self.getDepth(node) < properRank:
                 parentName = "%s %s incertae sedis" %(node.name, CRESTree.depths[self.getDepth(node)])
                 intermediate = self.addNode(parentName, self.getParent(node), sfLimits[properRank-1])
-                self.moveNode(node, intermediate)
-                self.assignmentMin[node.name] = sfLimits[properRank]                
+                self.moveNode(node, intermediate)                                
                 
         for child in self.getImmediateChildren(node):
             self._addIntermediateRanks(child)
@@ -342,13 +361,13 @@ class ARBor(CRESTree):
             if "." in acc:
                 acc = acc[:acc.find(".")]
             
-            if not (acc in self.rejected):
-                if acc in self.accessions:
-                    id = self.accessions[acc].nodeID
-                    newFasta.write(">%s\n%s\n" % (id, record.seq))                    
-                else:
-                    sys.stderr.write("Warning: cannot find %s in taxonomy. "
-                                     "Skipping!\n" % acc)    
+            #if not (acc in self.rejected):
+            if acc in self.accessions:
+                id = self.accessions[acc].nodeID
+                newFasta.write(">%s\n%s\n" % (id, record.seq))                    
+            else:
+                sys.stderr.write("Warning: cannot find %s in taxonomy. "
+                                 "Skipping!\n" % acc)    
         newFasta.close()
     
     def writeConfigFiles(self, mapFile=None, treeFile=None):
@@ -379,7 +398,10 @@ class ARBor(CRESTree):
     def _writeMEGANData(self, node, mapFile, treeList):
         # Self recursive, depth-first type
         
-        assMin = self.assignmentMin[node.name]
+        if node.name in  self.assignmentMin:
+            assMin = self.assignmentMin[node.name]
+        else:
+            assMin = 0
         mapFile.write("%s\t%s\t-1\t%s\n" % (node.nodeID, node.name, assMin))
       
         # Example:

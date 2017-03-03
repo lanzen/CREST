@@ -30,6 +30,7 @@ setup(name='LCAClassifier',
       entry_points={
                     'console_scripts': [
                               'classify = LCAClassifier.classify:main',
+                              'nds2CREST = LCAClassifier.nds2CREST:main'
                               ]
                     },
       )
