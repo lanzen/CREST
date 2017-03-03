@@ -363,11 +363,11 @@ class ARBor(CRESTree):
             
             #if not (acc in self.rejected):
             if acc in self.accessions:
-                id = self.accessions[acc].nodeID
-                newFasta.write(">%s\n%s\n" % (id, record.seq))                    
+                #id = self.accessions[acc].nodeID
+                newFasta.write(">%s\n%s\n" % (acc, record.seq))              
             else:
                 sys.stderr.write("Warning: cannot find %s in taxonomy. "
-                                 "Skipping!\n" % acc)    
+                                 "Skipping!\n" % acc)
         newFasta.close()
     
     def writeConfigFiles(self, mapFile=None, treeFile=None):

@@ -264,7 +264,7 @@ class CRESTree:
         for nn in nodeNames:
             n = self.getNode(nn)
             if not n:
-                sys.stderr.write("ERROR: Node %n not found in reference database\n" % n)
+                sys.stderr.write("ERROR: Node %s not found in reference database\n" % nn)
                 return None
             if not n in nodes:
                 nodes.append(n)
