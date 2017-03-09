@@ -95,7 +95,7 @@ class CRESTree:
             else:
                 return node
         else: 
-            sys.stderr.write("Verification Error: Node %s is a strange instance|n" %nn)
+            sys.stderr.write("Verification Error: Node %s is a strange instance|n" %node)
             return        
         
 
