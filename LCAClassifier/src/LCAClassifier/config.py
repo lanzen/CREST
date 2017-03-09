@@ -19,7 +19,10 @@ class LCAClassifierConfig(object):
         if config is None:
             # Assuming script being run from buildout path
             config_path = os.path.join('parts', 'etc', 'lcaclassifier.conf')
-            config = os.path.join(buildout_path(), config_path)
+            bp = buildout_path()
+            if "/src" in bp:
+                bp = bp.replace("/src","")
+            config = os.path.join(bp, config_path)            
 
         if os.path.isfile(config):
             parser = ConfigParser.ConfigParser()
