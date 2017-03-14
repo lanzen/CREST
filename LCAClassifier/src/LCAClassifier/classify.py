@@ -347,7 +347,7 @@ class LCAClassifier():
             
     def writeAssignedCount(self, outFile, countType="totalAbundance", depths=CRESTree.depths):
         """
-        Writes all assignments, either direct ones (not including children), total ones (incl.), or
+        Writes all assignments, either direct trefileones (not including children), total ones (incl.), or
         richness (no. of OTUs assigned)
         """        
         datasetheaders = "\t".join(ds for ds in self.datasets)       

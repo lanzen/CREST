@@ -23,6 +23,11 @@ def main():
     tree = ClassificationTree(treFile, mapFile)
     
     fastafile = sys.argv[1]
+    n = tree.getNode("GQ241320")    
+    p = tree.getPath(n)
+    print p
+    textPath = [str(taxa) for taxa in p]
+    print textPath
     
     # Read fasta header
     # Check classification for accession
