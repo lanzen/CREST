@@ -291,13 +291,13 @@ class ARBor(CRESTree):
         # later reassignment of accessions
         
         parentsToDeleted = {} # name as key, parent node as value
-        print "DEBUG: Root=",self.root
+        #print "DEBUG: Root=",self.root
         delQ = Queue.Queue()
         for c in self.tree.root.clades:
             delQ.put(c)
         while not delQ.empty():
             current = delQ.get()
-            print "DEBUG:",current
+            #print "DEBUG:",current
             properRank = self._getProperRank(current)
              
             if properRank:   
@@ -355,6 +355,7 @@ class ARBor(CRESTree):
         newFasta = open(outFile , 'w')
     
         for record in Bio.SeqIO.parse(open(inFile), "fasta"):
+            
         
             headerItems = record.description.split()
             acc = headerItems[-1]
@@ -364,7 +365,8 @@ class ARBor(CRESTree):
             #if not (acc in self.rejected):
             if acc in self.accessions:
                 #id = self.accessions[acc].nodeID
-                newFasta.write(">%s\n%s\n" % (acc, record.seq))              
+                newFasta.write(">%s\n%s\n" % (acc, record.seq))
+                print acc              
             else:
                 sys.stderr.write("Warning: cannot find %s in taxonomy. "
                                  "Skipping!\n" % acc)
