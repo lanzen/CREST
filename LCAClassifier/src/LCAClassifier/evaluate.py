@@ -3,6 +3,7 @@ Created on Mar 7, 2017
 
 @author: andersl
 '''
+
 from LCAClassifier.taxa import CRESTree
 from LCAClassifier.classify import ClassificationTree
 from LCAClassifier.config import config
