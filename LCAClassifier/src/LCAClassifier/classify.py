@@ -120,8 +120,7 @@ class ClassificationTree(CRESTree):
                 #Invoke superclass constructor 
         CRESTree.__init__(self, Phylo.read(trefile,"newick", values_are_confidence=True, rooted=True))
         
-        self.noHits = Phylo.BaseTree.Clade(name="No hits")
-        self.addNode(self.noHits, self.root)
+        self.noHits = self.addNode("No hits", self.root)        
         
         # Fill nodeID dict
         print "Making node list..."
@@ -132,7 +131,8 @@ class ClassificationTree(CRESTree):
         
         # the two accession number patterns that exist
         accPatterns = [re.compile("\D\D\d\d\d\d\d\d\Z"), re.compile("\D\d\d\d\d\d\Z"),
-                       re.compile("\D\D\D\D\d\d\d\d\d\d\d\d\d\Z")]
+                       re.compile("\D\D\D\D\d\d\d\d\d\d\d\d\d\Z"),
+                       re.compile("\D\D\D\D\d\d\d\d\d\d\d\d\Z")]
         
         # Read nodes from .map file (id\t name\t cutoff)
         print "Reading .map file"

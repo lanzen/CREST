@@ -7,7 +7,7 @@ Assumes  accession as last item in fasta header.
 import sys
 
 from LCAClassifier.arbor import ARBor
-
+from Bio import Phylo
 import Bio.SeqIO
 from optparse import OptionParser
 
@@ -80,13 +80,24 @@ def main():
             
     if options.rankFile or options.GGRankInfo:
         print "...Fixing rank structure"
-        st.enforceRankStructure(options.rankFile)        
+        st.enforceRankStructure(options.rankFile)
+        
+    print "...Writing ASCII representations"
+    asciiout = open(options.name+"_ascii_tree.txt","w")
+    indout = open(options.name+"_indented_tree.txt","w")
+    Phylo.draw_ascii(st.tree, file=asciiout)
+    indout.write(str(st.tree))
+    asciiout.close()        
+    indout.close()
         
     print "...Writing fasta"
     st.writeFasta(inFile = options.fastaFile, outFile = options.name + ".fasta")
         
-    print "...writing MEGAN files"
+    print "...writing CREST config files"
     st.writeConfigFiles(mapFile=options.name + ".map", treeFile=options.name + ".tre")    
+    
+    print "...writing MEGAN config files"
+    st.writeMEGANFiles(mapFile=options.name + "_megan.map", treeFile=options.name + "_megan.tre")
 
 if __name__ == "__main__":
 

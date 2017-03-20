@@ -95,14 +95,14 @@ class CRESTree:
             else:
                 return node
         else: 
-            sys.stderr.write("Verification Error: Node %s is a strange instance|n" %node)
+            sys.stderr.write("Verification Error: Node %s is a strange instance \n" %node)
             return        
         
 
     def addNode(self, nodename, parent, assignmentMin=0):
         #insert instead of append?
         if nodename in self.nodeNames:
-            sys.stderr.write("Node name \"%s\" is not unique - not added|n" % nodename)
+            sys.stderr.write("Node name \"%s\" is not unique - not added\n" % nodename)
             return None
         node = Phylo.Newick.Clade(name=nodename)
         parent = self.verifyNode(parent)
@@ -296,7 +296,8 @@ class CRESTree:
         return lcaPath[-1]
     
     
-    def _getAllChildren(self, node, children=[], parent = None):
+    def _getAllChildren(self, node, children=None, parent = None):
+        if children is None: children = []
         for c in node.clades:
             self._getAllChildren(c,children, parent = node)
         children.append(node)

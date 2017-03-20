@@ -1,6 +1,5 @@
 import sys
 import re
-import os
 import Queue
 import Bio.SeqIO
 
@@ -79,7 +78,7 @@ class ARBor(CRESTree):
         """Parses an NDS Export file from Silva with accession, silva tax. and
         NCBI Tax."""
         
-        plastidNames = ["chloroplast","Chloroplast","Plastid","plastid"]
+        plastidNames = ["chloroplast","Chloroplast","Plastid"]
         organelleFind = dict((k,self.plastid) for k in plastidNames)
         for k in ["Mitochondrion","mitochondrion","mitochondria","Mitochondria"]:
             organelleFind[k] = self.mito
@@ -125,20 +124,22 @@ class ARBor(CRESTree):
                     if ((len(parts) > 3) and k in parts[3]) or k in taxonomy:
                         parent = organelleFind[k]
                     if k in taxa:            
-                        taxa.pop(taxa.index(k))               
+                        taxa.pop(taxa.index(k))          
             else:
                 parent = self.cellOrg
                 
             # Fix organelle names
-            for taxon in taxa:               
+            for i in range(0,len(taxa)):
                 if parent == self.plastid:
-                    taxon+=(" (Chloroplast)")
+                    taxa[i]+=(" (Chloroplast)")
                 elif parent == self.mito:
-                    taxon+=(" (Mitochondrion)")
-                    
+                    taxa[i]+=(" (Mitochondrion)")
+#             if parent == self.plastid or parent == self.mito:
+#                 print "DEBUG:",taxa
+#                     
                                                                                
             # Now go through taxa one by one again            
- 
+            for i in range(0,len(taxa)):
                 depth = self.getDepth(parent)+1
                 
                 if depth in sfLimits:
@@ -152,46 +153,47 @@ class ARBor(CRESTree):
                 rank = CRESTree.depths[depth]
                 
                 #Remove explicit rank from greengenes node since not useful
-                if self.GGMode and len(taxon)>3 and taxon[1:3]=="__":                    
-                    taxon = taxon[3:]
-                    dsym = taxon[0:1]                   
+                if self.GGMode and len(taxa[i])>3 and taxa[i][1:3]=="__":                    
+                    taxa[i] = taxa[i][3:]
+                    dsym = taxa[i][0:1]                   
                 
                 #--- Some common problems before default check and adding of taxa
-                #Check if taxon is numerical or empty and then replace with parent name
-                if len(taxon)== 0 or (len(re.findall('[0-9]', taxon)) == len(taxon)):
-                    taxon = "%s (%s)" % (parent.name, rank)
+                #Check if taxa[i] is numerical or empty and then replace with parent name
+                if len(taxa[i])== 0 or (len(re.findall('[0-9]', taxa[i])) == len(taxa[i])):
+                    taxa[i] = "%s (%s)" % (parent.name, rank)
                 
                 #Fix parent of self ambigousity error
-                elif taxon == parent.name or taxon.startswith("Unknown "):
-                    taxon = "%s (%s)" % (parent.name, rank)
+                elif taxa[i] == parent.name or taxa[i].startswith("Unknown "):
+                    taxa[i] = "%s (%s)" % (parent.name, rank)
                 
                 #Fix incertae sedis only issues (still in 106)
-                if taxon == "Incertae Sedis" or taxon == "Incertae_sedis":
-                    taxon = "%s Incertae Sedis" % parent.name                
+                if taxa[i] == "Incertae Sedis" or taxa[i] == "Incertae_sedis":
+                    taxa[i] = "%s Incertae Sedis" % parent.name                
                 
                 
-                while (taxon in self.nodeNames) and self.getParent(self.getNode(taxon)) is not parent:                     
+                while (taxa[i] in self.nodeNames) and self.getParent(self.getNode(taxa[i])) is not parent:                     
                     
-                        node = self.getNode(taxon)
+                        node = self.getNode(taxa[i])
                         # Set new parent if parent matches
                         #print "DEBUG: Parent %s, node: %s" %(parent.name, node.name)
-                        taxon += " (%s)" % parent.name
+                        taxa[i] += " (%s)" % parent.name
                 
-                if taxon in self.nodeNames:
-                    parent = self.getNode(taxon)
+                if taxa[i] in self.nodeNames:
+                    parent = self.getNode(taxa[i])
                 else:
-                    parent = self.addNode(nodename=taxon,parent=parent,
+                    parent = self.addNode(nodename=taxa[i],parent=parent,
                                       assignmentMin=alim)
                  
                 if self.GGMode and dsym:
-                    self.ranks[taxon] = ggCodes[dsym]
+                    self.ranks[taxa[i]] = ggCodes[dsym]
                  
             # Add accession to parent
             if not accession in self.accessions:
                 self.accessions[accession] = parent
             else:
                 #self.rejected += accession
-                sys.stderr.write("Warning: Accession %s occurs more than once.\n" % accession)
+                sys.stderr.write("Warning: Accession %s occurs more than once! " % accession)
+                sys.stderr.write("Only the 1st will be used.\n")
         ndsFile.close()    
 
     def processChangesMetadata(self, changeFile):
@@ -283,45 +285,131 @@ class ARBor(CRESTree):
                 if (lp[0]) in self.nodeNames and lp[1] in depthNames:
                     self.ranks[lp[0]] = depthNames[lp[1]]
                     
-            rr.close()            
+            rr.close()
                
         # Do breadth first traversal and delete intermediate taxa that are not
         # part of available ranks to enforce rank structure. Detected when 
-        # child node is deeper than it should be. Remember parents for
-        # later reassignment of accessions
+        # child node is deeper or shallower than it should be. Add or remove 
+        # Parents. Remember parents of deleted for later reassignment of accessions
         
         parentsToDeleted = {} # name as key, parent node as value
         #print "DEBUG: Root=",self.root
         delQ = Queue.Queue()
-        for c in self.tree.root.clades:
-            delQ.put(c)
-        while not delQ.empty():
-            current = delQ.get()
+        delQOrganelle = Queue.Queue()
+        if self.rearrangeOrganelles:
+            delQ.put(self.mainGenome)
+            delQOrganelle.put(self.mito)
+            delQOrganelle.put(self.plastid)
+        else: 
+            for c in self.tree.root.clades:
+                delQ.put(c)
+        while not delQ.empty() or not delQOrganelle.empty():
+            if not delQ.empty(): 
+                current = delQ.get()
+            else:
+                current = delQOrganelle.get()            
+            
             #print "DEBUG:",current
             properRank = self._getProperRank(current)
              
-            if properRank:   
-                while self.getDepth(current) > properRank:
-                    parent = self.getParent(current)
-                    grandparent = self.getParent(parent)                    
-                    self.deleteNode(parent, moveUpChildren=True)
-                    parentsToDeleted[parent.name] = grandparent
-                    if properRank>=max(sfLimits):
-                        self.assignmentMin[current.name] = sfLimits[properRank]
+            while properRank and self.getDepth(current) > properRank:
+                tp = [str(n) for n in self.getPath(current)] #DEBUG
+                print "DEBUG: Too low: %s" % tp 
+                parent = self.getParent(current)
+                grandparent = self.getParent(parent)                    
+                self.deleteNode(parent, moveUpChildren=True)
+                parentsToDeleted[parent.name] = grandparent
+                if properRank>=max(sfLimits):
+                    self.assignmentMin[current.name] = sfLimits[max(sfLimits)]
+                elif properRank<min(sfLimits):
+                    self.assignmentMin[current.name] = 0
+                else:
+                    self.assignmentMin[current.name] = sfLimits[properRank]
+                
+                tp = [str(n) for n in self.getPath(current)] #DEBUG
+                print "DEBUG: --> %s" % tp
+            
+            while properRank and self.getDepth(current) < properRank:
+                tp = [str(n) for n in self.getPath(current)] #DEBUG
+                print "DEBUG: Too high: %s" % tp
+                
+                parent = self.getParent(current)
+                actualRank = self.getDepth(current)
+                actualRankName = CRESTree.depths[actualRank]
+                if parent.name.startswith("Bacteria") and actualRank<CRESTree.PHYLUM:
+                    parentName = "Bacteria (%s)" % actualRankName
+                elif parent.name.startswith("Archaea") and actualRank<CRESTree.PHYLUM:
+                    parentName = "Archaea (%s)" % actualRankName
+                elif properRank == CRESTree.SPECIES and " " in current.name and not "(" in current.name:
+                    genusName = current.name[:current.name.find(" ")]                    
+                    if actualRank == CRESTree.GENUS and genusName not in self.nodeNames:
+                        parentName = genusName
                     else:
-                        self.assignmentMin[current.name] = 0
+                        parentName = "%s %s incertae sedis" % (current.name, actualRankName)
+                elif " (Chloroplast)" in current.name:
+                    parentName = self._adaptFromMainGenome(node=current, rank=properRank, 
+                                                           add=" (Chloroplast)",genomeType=self.plastid)
+                elif " (Mitochondrion)" in current.name:
+                    parentName = self._adaptFromMainGenome(node=current, rank=properRank, 
+                                                           add=" (Mitochondrion)",genomeType=self.mito)
+                        
+                else:
+                    parentName = "%s %s incertae sedis" %(current.name, actualRankName)
+                
+                if parentName in self.nodeNames:
+                    intermediate = self.getNode(parentName)
+                else:
+                    intermediate = self.addNode(parentName, parent, 
+                                            sfLimits[properRank-1])
+                self.moveNode(current, intermediate)
+                self.assignmentMin[current.name] = sfLimits[properRank]
+                
+                tp = [str(n) for n in self.getPath(current)] #DEBUG                
+                print "DEBUG: --> %s" % tp                   
                     
             for child in self.getImmediateChildren(current):
-                delQ.put(child)                
+                delQ.put(child) 
         
         # Go through accessions and check if that node is if in deletedNodes, if so re-assign to parent
         # (until parent is no longer in deletedNodes itself)        
-        for acc in self.accessions:                        
+        for acc in self.accessions:                      
             while self.accessions[acc].name in parentsToDeleted:
                 self.accessions[acc] = parentsToDeleted[self.accessions[acc].name]
         
         
-        self._addIntermediateRanks(self.tree.root)         
+         #self._addIntermediateRanks(self.tree.root)         #Must be done in parallel! :(
+         
+    def _adaptFromMainGenome(self, node, rank, add, genomeType):        
+        
+        newParent = genomeType
+        realName = node.name.replace(add,"")
+        realPath = self.getPath(self.getNode(realName))
+        nodePath = self.getPath(node)
+        for i in range(1,min(rank,len(realPath))-1):
+            pName = realPath[i].name+add
+            if len(nodePath)> i and pName == nodePath[i].name:
+                newParent= nodePath[i]
+                print "DEBUG: Agreement: %s" % (nodePath[i].name)
+            else:
+                if len(nodePath)>i:
+                    print "DEBUG: 18S: %s, 16S: %s" %(realPath[i].name, nodePath[i].name)
+                if pName in self.nodeNames:
+                    newParent = self.getNode(pName)
+                    print "DEBUG: New Parent set to existing: %s" % pName
+                else:
+                    newParent = self.addNode(pName, newParent, 0)
+                    print "DEBUG: New Parent added: %s" % pName
+                
+        for i in range(len(realPath)-1,rank-1):
+            nn = "%s %s incertae sedis" % (node.name, CRESTree.depths[i])
+            if nn in self.nodeNames:
+                newParent = self.getNode(nn)
+                print "DEBUG: New Parent set to existing: %s" % nn
+            else:
+                newParent = self.addNode(nn,newParent,0)
+                print "DEBUG: New Parent added: %s" % nn
+        
+        return newParent.name
 
     def _addIntermediateRanks(self, node):
         
@@ -341,7 +429,9 @@ class ARBor(CRESTree):
         """ Find depth of node from name or self.ranks dict"""            
         name = node.name
         if " (" in name:
-            name = name[:name.find(" (")]                        
+            inBrackets = name[name.rfind("(")+1:name.rfind(")")]
+            if not inBrackets in CRESTree.depths.values():
+                name = name[:name.find(" (")]                        
         if name in self.ranks: # other tests incl. "ales" "aceae"
             return self.ranks[name]
         elif name[-4:] == "ales":
@@ -351,11 +441,11 @@ class ARBor(CRESTree):
         else: 
             return None        
     
-    def writeFasta(self, inFile, outFile):    
+    def writeFasta(self, inFile, outFile):
+        added = []    
         newFasta = open(outFile , 'w')
     
-        for record in Bio.SeqIO.parse(open(inFile), "fasta"):
-            
+        for record in Bio.SeqIO.parse(open(inFile), "fasta"):            
         
             headerItems = record.description.split()
             acc = headerItems[-1]
@@ -363,27 +453,26 @@ class ARBor(CRESTree):
                 acc = acc[:acc.find(".")]
             
             #if not (acc in self.rejected):
-            if acc in self.accessions:
-                #id = self.accessions[acc].nodeID
-                newFasta.write(">%s\n%s\n" % (acc, record.seq))
-                print acc              
+            if  acc in self.accessions:
+                if acc not in added:
+                    #id = self.accessions[acc].nodeID
+                    newFasta.write(">%s\n%s\n" % (acc, record.seq))
+                    added.append(acc)
             else:
                 sys.stderr.write("Warning: cannot find %s in taxonomy. "
                                  "Skipping!\n" % acc)
         newFasta.close()
     
-    def writeConfigFiles(self, mapFile=None, treeFile=None):
-        """Writes metadata files for MEGAN in tabular format and (special)        
+    def writeConfigFiles(self, mapFile, treeFile):
+        """Writes metadata files for CREST in tabular format and (special)        
         @mapFile the map file name
         @treeFile Newick treeFile format file name
-        @limitTo only include the following accessions in map file
         """
-        mapFile = open(mapFile, "w")        
-        
+        mapFile = open(mapFile, "w")
         treeList = [self.root.nodeID, ";"]
         
-        self._writeMEGANData(node=self.root, mapFile=mapFile, treeList=treeList)
-        
+        self._writeMapAndTre(node=self.root, mapFile=mapFile, treeList=treeList)
+                        
         # also write accessions in map file mapped to their nodes
         for acc in self.accessions:
             anode = self.accessions[acc]
@@ -391,15 +480,38 @@ class ARBor(CRESTree):
             mapFile.write("%s\t%s\t-1\t%s\n" % (anode.nodeID, acc, assMin))
        
         mapFile.close()
-
+        
+        treeFile = open(treeFile, "w")
+        treeFile.write(''.join([str(item) for item in treeList]))
+        treeFile.close()
+        
+    def writeMEGANFiles(self, mapFile, treeFile):
+        """Writes metadata files for MEGAN same format as CREST config 
+        except all accessions are included in the tree and each .map file
+        entry maps uniquely to the tree        
+        @mapFile the map file name
+        @treeFile Newick treeFile format file name        
+        """
+        mapFile = open(mapFile, "w")
+        treeList = [self.root.nodeID, ";"]
+        
+        # Add all accessions as nodes
+        for acc in self.accessions:
+            self.addNode(acc, self.accessions[acc], 1.0)
+        
+        self._writeMapAndTre(node=self.root, mapFile=mapFile, treeList=treeList)
+       
+        mapFile.close()
+        
         treeFile = open(treeFile, "w")
         treeFile.write(''.join([str(item) for item in treeList]))
         treeFile.close()
 
 
-    def _writeMEGANData(self, node, mapFile, treeList):
+    def _writeMapAndTre(self, node, mapFile, treeList):
         # Self recursive, depth-first type
         
+                
         if node.name in  self.assignmentMin:
             assMin = self.assignmentMin[node.name]
         else:
@@ -431,7 +543,8 @@ class ARBor(CRESTree):
                 sys.stderr.write("Problem with tree structure! Breaking.")
 
         for child in self.getImmediateChildren(node):
-            self._writeMEGANData(node=child, mapFile=mapFile, treeList=treeList)
+            self._writeMapAndTre(node=child, mapFile=mapFile, treeList=treeList)            
+    
 
     # NDS helper methods
     def _useNCBINameInTaxonomy(self, ncbi_name):
