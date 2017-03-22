@@ -143,15 +143,14 @@ class ClassificationTree(CRESTree):
             nodeID = parts[0]
             name = parts[1]
             minPercent = float(parts[2])
-            if (minPercent > 100) or (minPercent<0):
-                minPercent = 0  
+            if minPercent<0: minPercent = 0
             
             n = self.getNodeByID(nodeID)
             if n:
                 self.nodeNames[name] = n                
                 # Unless this is just an accession, update node name (accessions are only mapped)
-                if not (accPatterns[0].match(name) or accPatterns[1].match(name) or 
-                         accPatterns[2].match(name)):
+                if minPercent<1 and not (accPatterns[0].match(name) or accPatterns[1].match(name) or
+                        accPatterns[2].match(name) or accPatterns[3].match(name)):
                     self.assignmentMin[name] = minPercent
                     n.name = name
             else:
