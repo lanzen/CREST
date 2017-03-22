@@ -61,7 +61,8 @@ def outputFasta(data,filename,filename2,lst):
         for j in range(0,len(acs)):
             if acs[j] in unite[i]:
                 dict_acs[acs[j]]=getIndex(unite[i+1],'','\n',0,0)
-    
+
+                
     #Delete the values of the family to delete.
     for i in lst:
         i=">"+i
@@ -73,7 +74,8 @@ def outputFasta(data,filename,filename2,lst):
         for j in range(0,len(unite),2):
             for i in lst:
                 if i in unite[j]: 
-                    print >> output1, unite[j]+unite[j+1]       
+                    print >> output1, unite[j]+unite[j+1].replace("\n","")
+   
     output1.close()
     
     #Output2: The Fasta file containing all the sequences except the one of the family.
