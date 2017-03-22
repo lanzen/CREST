@@ -1,7 +1,9 @@
 '''
 Created on Mar 7, 2017
+
 @author: andersl
 '''
+
 from LCAClassifier.taxa import CRESTree
 from LCAClassifier.classify import ClassificationTree
 from LCAClassifier.config import config
@@ -10,6 +12,7 @@ from Bio import Phylo
 
 def getIndex(txt,mot1,mot2,int1,int2):
     """This function is written by LAPORTE Amelie.
+
     Args:
        txt:correspond to the genbank entry stored in memory with the readFlatFile function.
        mot1, mot2: the words used as index to separate the information.
@@ -40,15 +43,16 @@ def parserFasta(filename,acs,pth):
     for i in range(0,len(source),2):
         if '>' in source[i]:
             #to store accession number in list
-            acs.append(getIndex(source[i],">","\t",1,0))
+            acs.append(getIndex(source[i],">"," ",1,0))
             #to store taxonomic pathways in list
-            pth1=(getIndex(source[i],"\t","\n",1,0))
+            pth1=(getIndex(source[i]," ","\n",1,0))
             pth.append(pth1.split(";"))
     sourceText.close()
     return acs,pth
 
 def counter(sftLst,refLst,errLst):
     """This function is written by LAPORTE Amelie.
+
     Args:
        lst1:correspond to the taxonomic pathway list of the FASTA file.
        lst2:correspond to the taxonomic pathway list of the Reference tree.
@@ -76,6 +80,7 @@ def counter(sftLst,refLst,errLst):
 
 def correctLength(lst):
     """This function is written by LAPORTE Amelie.
+
     Args:
        lst: correspond to the list we want to correct the length in order to compare it in the counter function.
         
@@ -89,6 +94,7 @@ def correctLength(lst):
 
 def scorePerLevel(lst,dict):
     """This function is written by LAPORTE Amelie.
+
     Args:
         lst: correspond to the list of score in each taxonomic level of each accession number.
         dict: Is a list of 8 dictionaries (for each level) containing the 4 score possible
