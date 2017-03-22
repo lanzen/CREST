@@ -116,11 +116,11 @@ class OTU:
 class ClassificationTree(CRESTree):
     
     oldPercentDefaults = {
-        98: .97,
-        5: .95,
-        4: .90,
-        3: .85,
-        2: .80}
+        98.0: .97,
+        5.0: .95,
+        4.0: .90,
+        3.0: .85,
+        2.0: .80}
         
     """A tree for classification initated from tre- and map files"""
       
@@ -154,9 +154,9 @@ class ClassificationTree(CRESTree):
             oldRankMarker = False
           
             # Compability to old silvamod.map (v106)
-            if minPercent>=100: 
+            if minPercent>=100.0: 
                 self.assignmentMin[name] = 2.0
-            elif minPercent > 1:
+            elif minPercent > 1.0:
                 self.assignmentMin[name] = ClassificationTree.oldPercentDefaults[minPercent]
             
             # Find node and map name or accession to it
@@ -165,7 +165,7 @@ class ClassificationTree(CRESTree):
                 self.nodeNames[name] = n                
                 
                 # Unless this is just an accession, update node name and assignment min.
-                if minPercent>0 and not (accPatterns[0].match(name) or accPatterns[1].match(name) or
+                if minPercent>=0 and not (accPatterns[0].match(name) or accPatterns[1].match(name) or
                         accPatterns[2].match(name) or accPatterns[3].match(name)):
                     self.assignmentMin[name] = minPercent
                     n.name = name    
@@ -302,7 +302,7 @@ class LCAClassifier():
                         # Create unknown node - a new one for each OTU
                         i=1
                         u_name = "Unknown %s %s %s" % (lcaNode.name, self.tree.getRank(lcaNode), i)                        
-                        while u_name in self.tree.nodes:
+                        while u_name in self.tree.nodeNames:
                             i+=1
                             u_name = "Unknown %s %s %s" % (lcaNode.name, 
                                                            self.tree.getRank(lcaNode), i)

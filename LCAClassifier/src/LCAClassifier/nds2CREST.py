@@ -87,7 +87,7 @@ def main():
     indout = open(options.name+"_indented_tree.txt","w")
     Phylo.draw_ascii(st.tree, file=asciiout)
     indout.write(str(st.tree))
-    asciiout.close()        
+    asciiout.close()
     indout.close()
         
     print "...Writing fasta"
