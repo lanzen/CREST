@@ -34,6 +34,7 @@ import biom.table
 BSR_DEFAULT = 0.98
 MS_DEFAULT = 155
 
+
 class AssignmentInfo:
     
     """
@@ -112,8 +113,15 @@ class OTU:
         self.classification = node
     
 
-class ClassificationTree(CRESTree):  
+class ClassificationTree(CRESTree):
     
+    oldPercentDefaults = {
+        98: .97,
+        5: .95,
+        4: .90,
+        3: .85,
+        2: .80}
+        
     """A tree for classification initated from tre- and map files"""
       
     def __init__(self, trefile, mapfile):
@@ -142,17 +150,25 @@ class ClassificationTree(CRESTree):
             parts = line.split("\t")
             nodeID = parts[0]
             name = parts[1]
-            minPercent = float(parts[2])
-            if minPercent<0: minPercent = 0
+            minPercent = float(parts[3])
+            oldRankMarker = False
+          
+            # Compability to old silvamod.map (v106)
+            if minPercent>=100: 
+                self.assignmentMin[name] = 2.0
+            elif minPercent > 1:
+                self.assignmentMin[name] = ClassificationTree.oldPercentDefaults[minPercent]
             
+            # Find node and map name or accession to it
             n = self.getNodeByID(nodeID)
             if n:
                 self.nodeNames[name] = n                
-                # Unless this is just an accession, update node name (accessions are only mapped)
-                if minPercent<1 and not (accPatterns[0].match(name) or accPatterns[1].match(name) or
+                
+                # Unless this is just an accession, update node name and assignment min.
+                if minPercent>0 and not (accPatterns[0].match(name) or accPatterns[1].match(name) or
                         accPatterns[2].match(name) or accPatterns[3].match(name)):
                     self.assignmentMin[name] = minPercent
-                    n.name = name
+                    n.name = name    
             else:
                 sys.stderr.write("Error: Node %s (%s) not found in tree!\n" % (nodeID,name))                
                                 
@@ -267,7 +283,7 @@ class LCAClassifier():
                 # kick down if filter
                 hsp_sim = (float(best_hsp.identities) /
                            float(best_hsp.align_length))*100
-                if verbose and hsp_sim >= 99:
+                if verbose and hsp_sim >= 99.5:
                     print ("Read %s is %s percent similar to %s" %
                            (qName, hsp_sim,
                             record.alignments[0].hit_def))

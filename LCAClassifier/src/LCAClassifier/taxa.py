@@ -38,17 +38,7 @@ class CRESTree:
               SUBSPECIES: 'strain',
               }
 
-    meganCodes = {
-            META: 0,
-            DOMAIN: 0,
-            PHYLUM: 2,
-            CLASS: 3,
-            ORDER: 4,
-            FAMILY: 5,
-            GENUS: 98,
-            SPECIES: 100,
-            SUBSPECIES: 101}    
-    
+
 
     """Reference tree initiated from newick and map file"""
 

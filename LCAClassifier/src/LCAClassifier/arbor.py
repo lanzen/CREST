@@ -477,7 +477,7 @@ class ARBor(CRESTree):
         for acc in self.accessions:
             anode = self.accessions[acc]
             #assMin = self.assignmentMin[anode.name]
-            mapFile.write("%s\t%s\t-1\t%s\n" % (anode.nodeID, acc, 2))
+            mapFile.write("%s\t%s\t-1\t%s\n" % (anode.nodeID, acc, -1))
        
         mapFile.close()
         
@@ -497,7 +497,7 @@ class ARBor(CRESTree):
         
         # Add all accessions as nodes
         for acc in self.accessions:
-            self.addNode(acc, self.accessions[acc], 2)
+            self.addNode(acc, self.accessions[acc], -1)
         
         self._writeMapAndTre(node=self.root, mapFile=mapFile, treeList=treeList)
        
