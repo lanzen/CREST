@@ -4,11 +4,11 @@ Created on Mar 7, 2017
 @author: andersl, amelaporte
 '''
 
-from LCAClassifier.taxa import CRESTree
+
 from LCAClassifier.classify import ClassificationTree
 from LCAClassifier.config import config
 import sys
-from Bio import Phylo
+
 
 def getIndex(txt,mot1,mot2,int1,int2):
     """
@@ -179,6 +179,14 @@ def main():
     for i in range(0,len(score_total)):
         print taxaName[i],'\n\t','%s' % (score_total[i])
     
+    outName=sys.argv[2]
+
+    with open(outName,"w") as output:
+        for i in range(0,len(score_total)):
+            print >> output, taxaName[i]
+            output.writelines('{}\t{}\n'.format(k,v) for k,v in score_total[i].items())
+            print >>output, '\n'
+    output.close()
     
 
 if __name__ == '__main__':
