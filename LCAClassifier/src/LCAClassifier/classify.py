@@ -150,14 +150,14 @@ class ClassificationTree(CRESTree):
             parts = line.split("\t")
             nodeID = parts[0]
             name = parts[1]
-            minPercent = float(parts[3])
+            similarityCutoff = float(parts[3])
             oldRankMarker = False
           
             # Compability to old silvamod.map (v106)
-            if minPercent>=100.0: 
+            if similarityCutoff>=100.0: 
                 self.assignmentMin[name] = 2.0
-            elif minPercent > 1.0:
-                self.assignmentMin[name] = ClassificationTree.oldPercentDefaults[minPercent]
+            elif similarityCutoff > 1.0:
+                similarityCutoff = ClassificationTree.oldPercentDefaults[similarityCutoff]
             
             # Find node and map name or accession to it
             n = self.getNodeByID(nodeID)
@@ -165,9 +165,9 @@ class ClassificationTree(CRESTree):
                 self.nodeNames[name] = n                
                 
                 # Unless this is just an accession, update node name and assignment min.
-                if minPercent>=0 and not (accPatterns[0].match(name) or accPatterns[1].match(name) or
+                if similarityCutoff>=0 and not (accPatterns[0].match(name) or accPatterns[1].match(name) or
                         accPatterns[2].match(name) or accPatterns[3].match(name)):
-                    self.assignmentMin[name] = minPercent
+                    self.assignmentMin[name] = similarityCutoff
                     n.name = name    
             else:
                 sys.stderr.write("Error: Node %s (%s) not found in tree!\n" % (nodeID,name))                
@@ -282,10 +282,10 @@ class LCAClassifier():
                 # Take a look at similarity, print info if verbose and
                 # kick down if filter
                 hsp_sim = (float(best_hsp.identities) /
-                           float(best_hsp.align_length))*100
-                if verbose and hsp_sim >= 99.5:
+                           float(best_hsp.align_length))
+                if verbose and hsp_sim >= .995:
                     print ("Read %s is %s percent similar to %s" %
-                           (qName, hsp_sim,
+                           (qName, hsp_sim*100,
                             record.alignments[0].hit_def))
 
                 # Push down to lowest possible and create new node unless opted out
@@ -293,8 +293,9 @@ class LCAClassifier():
                        and hsp_sim < self.tree.assignmentMin[lcaNode.name] and 
                        lcaNode is not self.tree.root):
                     if verbose:
-                        print ("OTU %s cannot be assigned to %s (similarity=%s)\n" %
-                                   (qName, lcaNode.name, hsp_sim))                   
+                        print ("OTU %s cannot be assigned to %s (similarity=%s / %s)\n" %
+                                   (qName, lcaNode.name, hsp_sim, 
+                                    self.tree.assignmentMin[lcaNode.name]))                   
                     parent = self.tree.getParent(lcaNode)
                     if hsp_sim < self.tree.assignmentMin[parent.name] or noUnknowns:
                         lcaNode = parent

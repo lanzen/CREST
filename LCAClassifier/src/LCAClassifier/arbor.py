@@ -37,7 +37,7 @@ class ARBor(CRESTree):
     """A Tree with specific functions for handling data exported from ARB"""
 
     nonSpeciesKeys = ["uncultured", "sp.", "unidentified", "metagenome",
-                      "enrichment", "clone", "Unknown"]
+                      "enrichment", "clone", "Unknown", "sp.", "spp."]
     
     def __init__(self, name=None, rearrangeOrganelles=True, GGRankInfo=False):
         CRESTree.__init__(self)        
@@ -106,10 +106,10 @@ class ARBor(CRESTree):
             # Deal with NCBI name / species name
             ncbi_name = parts[2].replace("\n", "")
             
-            if self._useNCBINameInTaxonomy(ncbi_name):
+            if self._useNameInTaxonomy(taxa=taxa, ncbi_name=ncbi_name):
                 taxa.append(ncbi_name)
             else:
-                while taxa and not self._useNCBINameInTaxonomy(taxa[-1]):
+                while taxa and not self._useNameInTaxonomy(taxa=taxa):
                     taxa.pop()
                         
             # Deal with organells structure
@@ -155,7 +155,7 @@ class ARBor(CRESTree):
                 #Remove explicit rank from greengenes node since not useful
                 if self.GGMode and len(taxa[i])>3 and taxa[i][1:3]=="__":                    
                     taxa[i] = taxa[i][3:]
-                    dsym = taxa[i][0:1]                   
+                    dsym = taxa[i][0:1]
                 
                 #--- Some common problems before default check and adding of taxa
                 #Check if taxa[i] is numerical or empty and then replace with parent name
@@ -436,7 +436,7 @@ class ARBor(CRESTree):
             return self.ranks[name]
         elif name[-4:] == "ales":
             return CRESTree.ORDER
-        elif name[-4:] == "ceae":
+        elif name[-4:] == "ceae" and not name[-7:] == "phyceae":
             return CRESTree.FAMILY
         else: 
             return None        
@@ -547,10 +547,27 @@ class ARBor(CRESTree):
     
 
     # NDS helper methods
-    def _useNCBINameInTaxonomy(self, ncbi_name):
-        for nsKey in ARBor.nonSpeciesKeys:
-            if nsKey in ncbi_name:
+    def _useNameInTaxonomy(self, taxa, ncbi_name=None):
+        
+        if ncbi_name:
+            if not " " in ncbi_name:
+                #print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
                 return False
+            spParts = ncbi_name.split(" ")
+            if not (spParts[0] == taxa[-1] or taxa[-1] == "Eukaryota"):
+                #print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
+                return False
+            
+            name = ncbi_name        
+        else:
+            name = taxa[-1]
+        
+        for nsKey in ARBor.nonSpeciesKeys:
+            if nsKey in name:
+                #print "DEBUG: discarding sp. name: %s, parent: %s" % (name, taxa[-1])
+                return False
+        
+        #print "DEBUG: keeping sp. name %s" % (name)
         return True
     
         
