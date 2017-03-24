@@ -116,6 +116,8 @@ class OTU:
 class ClassificationTree(CRESTree):
     
     oldPercentDefaults = {
+        101.0: 1.0,
+        100.0: .99,
         98.0: .97,
         5.0: .95,
         4.0: .90,
@@ -154,9 +156,9 @@ class ClassificationTree(CRESTree):
             oldRankMarker = False
           
             # Compability to old silvamod.map (v106)
-            if similarityCutoff>=100.0: 
-                self.assignmentMin[name] = 2.0
-            elif similarityCutoff > 1.0:
+            #if similarityCutoff>=100.0: 
+             #   self.assignmentMin[nodeID] = 2.0                
+            if similarityCutoff > 1.0:
                 similarityCutoff = ClassificationTree.oldPercentDefaults[similarityCutoff]
             
             # Find node and map name or accession to it
@@ -288,7 +290,7 @@ class LCAClassifier():
                            (qName, hsp_sim*100,
                             record.alignments[0].hit_def))
 
-                # Push down to lowest possible and create new node unless opted out
+                # Push up to lowest possible and create new node unless opted out
                 while (minFilter and lcaNode.name in self.tree.assignmentMin 
                        and hsp_sim < self.tree.assignmentMin[lcaNode.name] and 
                        lcaNode is not self.tree.root):
@@ -308,10 +310,10 @@ class LCAClassifier():
                             u_name = "Unknown %s %s %s" % (lcaNode.name, 
                                                            self.tree.getRank(lcaNode), i)
                         
-                        lcaNode = self.tree.addNode(u_name, parent=parent)
+                        lcaNode = self.tree.addNode(u_name, parent=parent)               
                 
                 # Last check whether to remove because eukaryote and if not assign  
-                if euk_filter and lcaNode.get_path[0].name == "Eukaryota":
+                if euk_filter and self.tree.getPath(lcaNode)[1].name == "Eukaryota":
                     self.assignOTU(otu, self.tree.noHits)
                 else:
                     self.assignOTU(otu, lcaNode)
@@ -702,6 +704,10 @@ def main():
                         noUnknowns=options.noUnknowns, uniqueDataset=ud)
         results.close()
 
+    if not hasattr(lca.tree.root, "assignments"):
+        sys.stderr.write("\nNo query sequence could be assigned!\n")
+        return
+    
     # Remove empty nodes
     lca.tree.pruneUnassigned(lca.tree.root)
     
