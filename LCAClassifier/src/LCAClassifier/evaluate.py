@@ -1,7 +1,7 @@
 '''
 Created on Mar 7, 2017
 
-@author: andersl, amelaporte
+@author: andersl, ameliel
 '''
 
 
@@ -42,7 +42,10 @@ def parserFasta(filename,acs,pth):
     for i in range(0,len(source),2):
         if '>' in source[i]:
             #to store accession number in list
-            acs.append(getIndex(source[i],">"," ",1,0))
+            try:
+                acs.append(getIndex(source[i],">","-",1,0))
+	    except ValueError:
+                acs.append(getIndex(source[i],">"," ",1,0))
             #to store taxonomic pathways in list
             pth1=(getIndex(source[i]," ","\n",1,0))
             pth.append(pth1.split(";"))
@@ -52,9 +55,9 @@ def parserFasta(filename,acs,pth):
 def counter(sftLst,refLst,errLst):
     """
     Args:
-       lst1:correspond to the taxonomic pathway list of the FASTA file.
-       lst2:correspond to the taxonomic pathway list of the Reference tree.
-       lst3: correspond to the list where the result are displayed for each accession number. 
+       sftLst:correspond to the taxonomic pathway list of the Reference tree.
+       refLst:correspond to the taxonomic pathway list of the FASTA file.
+       errLst: correspond to the list where the result are displayed for each accession number. 
         
     Returns:
        The function a list with scores for each taxonomic level studied.
@@ -92,25 +95,25 @@ def correctLength(lst):
             lst[i]="None"
     return lst
 
-def scorePerLevel(lst,dict):
+def scorePerLevel(lst,dct):
     """
     Args:
         lst: correspond to the list of score in each taxonomic level of each accession number.
-        dict: Is a list of 8 dictionaries (for each level) containing the 4 score possible
+        dct: Is a list of 8 dictionaries (for each level) containing the 4 score possible
     Returns:
        returns the list of dictionaries containing the scores at each taxonomic level
   
     """
     for i in range(0,len(lst)):
             if lst[i]=='TP':
-                dict[i]['True Positive']+=1
+                dct[i]['True Positive']+=1
             if lst[i]=='FP':
-                dict[i]['False Positive']+=1
+                dct[i]['False Positive']+=1
             if lst[i]=='TN':
-                dict[i]['True Negative']+=1
+                dct[i]['True Negative']+=1
             if lst[i]=='FN':
-                dict[i]['False Negative']+=1      
-    return dict
+                dct[i]['False Negative']+=1      
+    return dct
         
 def main():
     
