@@ -46,9 +46,20 @@ def main():
                       help="Greengenes style explicit rank info in NDS files")
     
     parser.add_option("-p", "--nucleus_only",
-                      action="store_false",dest="euk_rearrange",
-                      default=True,
-                      help="Do not rearrange eukaryotic 16S (plastids / mitochondria) as separate domains")
+                      action = "store_false", dest="euk_rearrange",
+                      default=True,                    
+                      help="Do not rearrange eukaryotic 16S (plastids / mitochondria) as separate domains")       
+    
+    parser.add_option("-m", "--megan",
+                      action="store_true",dest="megan_out",
+                      default=False,
+                      help="Write MEGAN formatted .map and .tre files (extra)")
+    
+    parser.add_option("-s", "--sintax",
+                      action="store_true",dest="sintax_out",
+                      default=False,
+                      help="Write SINTAX formatted FASTA (extra)")
+                      
     
     
     (options, args) = parser.parse_args()
@@ -64,6 +75,7 @@ def main():
         
     if options.GGRankInfo and options.rankFile:
         parser.error("Option --greengenes_ranks is incompatible with supplying a separate rank file")        
+          
         
     print "...Initiating ARB Tree and reading rank lists"
     st = ARBor(name=options.name, rearrangeOrganelles=options.euk_rearrange,
@@ -96,8 +108,14 @@ def main():
     print "...writing CREST config files"
     st.writeConfigFiles(mapFile=options.name + ".map", treeFile=options.name + ".tre")    
     
-    print "...writing MEGAN config files"
-    st.writeMEGANFiles(mapFile=options.name + "_megan.map", treeFile=options.name + "_megan.tre")
+    if options.megan_out:
+        print "...writing MEGAN config files"
+        st.writeMEGANFiles(mapFile=options.name + "_megan.map", treeFile=options.name + "_megan.tre")
+    
+    if options.sintax_out:
+        print "...writing SINTAX training data (FASTA format)"
+        st.writeFasta(inFile = options.fastaFile, outFile = options.name + "_sintax.fasta", 
+                      sintax=True)
 
 if __name__ == "__main__":
 

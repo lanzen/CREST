@@ -6,6 +6,7 @@ from Bio import Phylo
 
 import biom.table
 import collections
+from Crypto.Random.random import getrandbits
 
 class CRESTree:
     """ Instances have specific methods and attributes needed for classification and 
@@ -157,13 +158,24 @@ class CRESTree:
         if not parent:
             sys.stderr.write("Cannot find parent beyond %s\n" % plist)
         else:
-            return plist
-    
+            return plist    
           
     def getFormattedTaxonomyPath(self, node):
         """Return string formatted, separated by semicolon"""        
         p = self.getPath(node)
         return ";".join(clade.name for clade in p)
+    
+    def getSintaxFormattedTaxPath(self, node):
+        """Return string formatted, separated by semicolon with nice letters before"""
+        tp = self.getPath(node)
+        taxString = "tax="
+        for clade in tp:
+            depth = self.getDepth(clade)
+            if depth > CRESTree.META  and depth < CRESTree.SUBSPECIES and depth != CRESTree.SUPERKINGDOM:
+                letter = CRESTree.depths[depth][0]
+                taxString+=("%s:%s," % (letter, clade.name.replace(" ","_")))
+        
+        return taxString[:-1]
 
     def deleteNode(self, node, moveUpChildren=False):
         """Removes node from tree structure.

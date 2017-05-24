@@ -97,7 +97,7 @@ class ARBor(CRESTree):
             if self.GGMode:            
                 taxa = re.split('[/;]', taxonomy)
             else:
-                taxa = re.split('[_/;]', taxonomy)            
+                taxa = re.split('[_/;]', taxonomy)
             
             # Deal with some unneccessary starting nodes:
             while taxa[0].lower()=="root" or taxa[0].lower=="cellular organisms":
@@ -111,6 +111,15 @@ class ARBor(CRESTree):
             else:
                 while taxa and not self._useNameInTaxonomy(taxa=taxa):
                     taxa.pop()
+                    
+            # Remove all empty or only numerical taxa
+            remove = []
+            for i in range(0,len(taxa)):
+                if len(taxa[i])== 0 or (len(re.findall('[0-9]', taxa[i])) == len(taxa[i])):
+                    remove.append(taxa[i])
+            for r in remove:
+                taxa.pop(taxa.index(r))
+
                         
             # Deal with organells structure
             # (the most sensible is to include an organelle node 
@@ -136,8 +145,8 @@ class ARBor(CRESTree):
                     taxa[i]+=(" (Mitochondrion)")
 #             if parent == self.plastid or parent == self.mito:
 #                 print "DEBUG:",taxa
-#                     
-                                                                               
+
+                                          
             # Now go through taxa one by one again            
             for i in range(0,len(taxa)):
                 depth = self.getDepth(parent)+1
@@ -157,18 +166,19 @@ class ARBor(CRESTree):
                     taxa[i] = taxa[i][3:]
                     dsym = taxa[i][0:1]
                 
-                #--- Some common problems before default check and adding of taxa
-                #Check if taxa[i] is numerical or empty and then replace with parent name
-                if len(taxa[i])== 0 or (len(re.findall('[0-9]', taxa[i])) == len(taxa[i])):
-                    taxa[i] = "%s (%s)" % (parent.name, rank)
                 
                 #Fix parent of self ambigousity error
-                elif taxa[i] == parent.name or taxa[i].startswith("Unknown "):
+                if taxa[i] == parent.name or taxa[i].startswith("Unknown "):
                     taxa[i] = "%s (%s)" % (parent.name, rank)
+                    print "DEBUG: -----------"
+                    print "DEBUG", line[:-1]
+                    print "DEBUG: same name as parent - adding %s" %taxa[i]                    
+                    print "DEBUG", taxa
+                    print "DEBUG: -----------"
                 
                 #Fix incertae sedis only issues (still in 106)
-                if taxa[i] == "Incertae Sedis" or taxa[i] == "Incertae_sedis":
-                    taxa[i] = "%s Incertae Sedis" % parent.name                
+                if taxa[i].lower() == "incertae sedis" or taxa[i] == "Incertae_sedis":
+                    taxa[i] = "%s incertae sedis" % parent.name                
                 
                 
                 while (taxa[i] in self.nodeNames) and self.getParent(self.getNode(taxa[i])) is not parent:                     
@@ -197,12 +207,12 @@ class ARBor(CRESTree):
         ndsFile.close()    
 
     def processChangesMetadata(self, changeFile):
-        """Process metadata update in tab-sep format"""
+        """Process metadata update in semicolon-sep format"""
         # Changing of rank can no longer be supported due to the explicit rank criteria
         changes = open(changeFile, "r")
         for line in changes:
             try:
-                parts = line.split(";")
+                parts = line[:-1].split(";")
                 #process parts
                 oldName = parts[0]
                 newName = parts[1]
@@ -228,37 +238,38 @@ class ARBor(CRESTree):
                     if self.getNode(newName):
                         sys.stderr.write("Warning: taxon %s is already present - not added" % newName)                    
                     
-                else:
-                    newNode = self.addNode(nodeName=newName, parent=parent,
-                                           assignmentMin=sfLimits(parent.getDepth+1))
-                    self.addNode(newNode)
-                    print "Added new taxon: %s" % newName            
-            
+                    else:
+                        newNode = self.addNode(nodeName=newName, parent=parent,
+                                               assignmentMin=sfLimits(parent.getDepth+1))
+                        self.addNode(newNode)
+                        print "Added new taxon: %s" % newName 
+                
+                else:          
+                    # Move node
+                    n = self.getNode(oldName)
+                    if not n:
+                        if self.getNode(newName):
+                            sys.stderr.write("Warning: Already moved / renamed: %s" % oldName)
+                        else:
+                            sys.stderr.write("Error: Cannot find taxon %s\n" % oldName)
+                            return                       
+                    if newName:                        
+                        self.renameNode(n, newName)
+                        print "Renamed %s to %s" % (oldName, newName)
+                    if newParent and not (newParent == self.getParent(n).name):
+                        print ("Moving %s from %s to %s" %
+                               (oldName, self.getParent(n).name, newParent))
+                        self.moveNode(n, self.getNode(newParent))
+                
             elif not newName and not newParent:
                 # Remove node
                 if not self.getNode(oldName):
                     sys.stderr.write("Warning: Taxon %s not found and cannot be deleted" % oldName)
                 else:
                     self.deleteNode(self.getNode(oldName), False)
-                    print "Deleted taxon: %s" % oldName    
+                    print "Deleted taxon: %s" % oldName   
             
-            elif not ".." in newName:
-                # Move or rename taxon
-                n = self.getNode(oldName)
-                if not n:
-                    if self.getNode(newName):
-                        sys.stderr.write("Warning: Already moved / renamed: %s" % oldName)
-                    else:
-                        sys.stderr.write("Error: Cannot find taxon %s\n" % oldName)
-                        return
-                else:
-                    if newName:
-                        self.renameNode(n, newName)
-                        print "Renamed %s to %s" % (oldName, newName)
-                    if newParent and not (newParent == n.parent.name):
-                        print ("Moving %s from %s to %s" %
-                               (oldName, n.parent.name, newParent))
-                        self.moveNode(n, self.getNode(newParent))
+
     
             #Control shorthand annotation with ..
             else:
@@ -430,7 +441,7 @@ class ARBor(CRESTree):
         name = node.name
         if " (" in name:
             inBrackets = name[name.rfind("(")+1:name.rfind(")")]
-            if not inBrackets in CRESTree.depths.values():
+            if not inBrackets in CRESTree.depths.values()+["superphylum"]:
                 name = name[:name.find(" (")]                        
         if name in self.ranks: # other tests incl. "ales" "aceae"
             return self.ranks[name]
@@ -441,7 +452,7 @@ class ARBor(CRESTree):
         else: 
             return None        
     
-    def writeFasta(self, inFile, outFile):
+    def writeFasta(self, inFile, outFile, sintax=False):
         added = []    
         newFasta = open(outFile , 'w')
     
@@ -454,13 +465,17 @@ class ARBor(CRESTree):
             
             #if not (acc in self.rejected):
             if  acc in self.accessions:
-                if acc not in added:
-                    #id = self.accessions[acc].nodeID
-                    newFasta.write(">%s\n%s\n" % (acc, record.seq))
+                if acc not in added:                    
+                    if not sintax:
+                        newFasta.write(">%s\n%s\n" % (acc, record.seq))
+                    else:
+                        sintaxpath = self.getSintaxFormattedTaxPath(self.accessions[acc])
+                        newFasta.write(">%s;%s;\n%s\n" % (acc, sintaxpath, record.seq))
                     added.append(acc)
             else:
                 sys.stderr.write("Warning: cannot find %s in taxonomy. "
                                  "Skipping!\n" % acc)
+        newFasta.close()
         newFasta.close()
     
     def writeConfigFiles(self, mapFile, treeFile):

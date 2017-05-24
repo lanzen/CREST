@@ -248,6 +248,8 @@ class LCAClassifier():
 
                 abFulFix = [int(uniqueDataset==self.datasets[i]) for i in range(len(self.datasets))]
                 otu = OTU(name=qName, abundances=abFulFix)
+            elif "_" in qName and qName[:qName.find("_")] in self.otus:
+                otu = self.otus[qName[:qName.find("_")]]
             else:
                 # An OTU table was given but this OTU still does not show up - ignore it!
                 sys.stderr.write("Warning! Cannot find %s in OTU table. Ignoring\n" %qName)
@@ -457,8 +459,8 @@ def main():
     parser.add_option("-d", "--dbname",
                       dest="dbname",
                       type="string",
-                      default="silvamod",
-                      help="Taxonomy and reference database to be used (defaut = silvamod)")
+                      default="silvamod128",
+                      help="Taxonomy and reference database to be used (defaut = silvamod128)")
 
     parser.add_option("-r", "--range",
                       dest="bitScoreRange",
@@ -614,12 +616,20 @@ def main():
         biomFile = open(options.biom, "r")
         bTable = biom.parse.parse_biom_table(biomFile)
         biomFile.close()
-        datasets = list(bTable.SampleIds)
+        if hasattr(bTable, "SampleIds"):
+            datasets = list(bTable.SampleIds)
+        else:
+            datasets = list(bTable.ids())
         
-        for obs in bTable.ObservationIds:
+        if hasattr(bTable,"ObservationIds"):
+            oIDs = bTable.ObservationIds
+        else:
+            oIDs = bTable.ids(axis='observation')
+        
+        for obs in oIDs:
             seq_abundances=[]
             for ds in datasets:
-                n_reads = int(bTable.getValueByIds(obs,ds))
+                n_reads = int(bTable.get_value_by_ids(obs,ds))
                 seq_abundances.append(n_reads)
             otus[obs] = OTU(name=obs, abundances=seq_abundances)
 
@@ -632,8 +642,11 @@ def main():
         fstream = open(options.fastafile, 'r')
         for seq_record in SeqIO.parse(fstream, "fasta"):
             if (options.otus or options.biom):
-                if otus.has_key(seq_record.id):
-                    otus[seq_record.id].sequence = seq_record.seq
+                otu_name = seq_record.id
+                if otus.has_key(otu_name):
+                    otus[otu_name].sequence = seq_record.seq
+                elif "_" in otu_name and otu_name[:otu_name.find("_")] in otus:
+                    otus[otu_name[:otu_name.find("_")]].sequence = seq_record.seq
                 else:
                     sys.stderr.write("Warning: sequence %s not found in OTUs. Skipping\n" 
                                      %seq_record.id)
