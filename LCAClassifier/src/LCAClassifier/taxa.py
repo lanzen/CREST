@@ -1,12 +1,7 @@
 import sys
-import re
-from collections import deque
 from types import StringType, IntType
 from Bio import Phylo
 
-import biom.table
-import collections
-from Crypto.Random.random import getrandbits
 
 class CRESTree:
     """ Instances have specific methods and attributes needed for classification and 

@@ -4,11 +4,8 @@ file for MEGANs.
 Assumes  accession as last item in fasta header.
 """
 
-import sys
-
 from LCAClassifier.arbor import ARBor
 from Bio import Phylo
-import Bio.SeqIO
 from optparse import OptionParser
 
 def main():
