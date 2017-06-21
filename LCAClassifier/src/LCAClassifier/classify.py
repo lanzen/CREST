@@ -243,11 +243,13 @@ class LCAClassifier():
             if qName in self.otus:
                 otu = self.otus[qName]
             elif uniqueDataset:
-                # OTUs are created from Fasta files in case missing in OTU table
+                # OTUs are created from Fasta files in case missing of OTU table
                 # (or in case OTU table is not given). Othwerise a new one is created
 
                 abFulFix = [int(uniqueDataset==self.datasets[i]) for i in range(len(self.datasets))]
-                otu = OTU(name=qName, abundances=abFulFix)
+                otuName = uniqueDataset+":"+qName
+                otu = OTU(name=otuName, abundances=abFulFix)
+                self.otus[otuName] = otu
             elif "_" in qName and qName[:qName.find("_")] in self.otus:
                 otu = self.otus[qName[:qName.find("_")]]
             else:
@@ -266,7 +268,7 @@ class LCAClassifier():
                     otu.sequence = str(best_hsp.query).replace("-", "")
                 
                 besthitname = record.alignments[0].hit_def.split()[0]      
-                
+            
                 # Iterate through rest of hits until falling below treshold
                 allHitNodes = [besthitname]
                 for a in record.alignments[1:]:
@@ -312,10 +314,10 @@ class LCAClassifier():
                             u_name = "Unknown %s %s %s" % (parent.name, 
                                                            self.tree.getRank(lcaNode), i)
                         
-                        lcaNode = self.tree.addNode(u_name, parent=parent)               
+                        lcaNode = self.tree.addNode(u_name, parent=parent)              
                 
                 # Last check whether to remove because eukaryote and if not assign  
-                if euk_filter and self.tree.getPath(lcaNode)[1].name == "Eukaryota":
+                if euk_filter and self.tree.getDepth(lcaNode)>1 and self.tree.getPath(lcaNode)[1].name == "Eukaryota":
                     self.assignOTU(otu, self.tree.noHits)
                 else:
                     self.assignOTU(otu, lcaNode)
