@@ -569,7 +569,7 @@ class ARBor(CRESTree):
                 print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
                 return False
             spParts = ncbi_name.split(" ")
-            if taxa[-1] in ["Eukaryota", "Chloroplast", "Mitochondrion"]:
+            if taxa[-1] in ["Eukaryota", "Chloroplast", "Mitochondrion", "Mitochnodria"]:
                 # Silva v128 organelle
                 taxa.append(spParts[0])
                 
