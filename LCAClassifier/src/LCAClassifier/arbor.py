@@ -164,8 +164,7 @@ class ARBor(CRESTree):
                 #Remove explicit rank from greengenes node since not useful
                 if self.GGMode and len(taxa[i])>3 and taxa[i][1:3]=="__":                    
                     taxa[i] = taxa[i][3:]
-                    dsym = taxa[i][0:1]
-                
+                    dsym = taxa[i][0:1]                
                 
                 #Fix parent of self ambigousity error
                 if taxa[i] == parent.name or taxa[i].startswith("Unknown "):
@@ -370,8 +369,7 @@ class ARBor(CRESTree):
                 if parentName in self.nodeNames:
                     intermediate = self.getNode(parentName)
                 else:
-                    intermediate = self.addNode(parentName, parent, 
-                                            sfLimits[properRank-1])
+                    intermediate = self.addNode(parentName, parent, sfLimits[properRank-1])
                 self.moveNode(current, intermediate)
                 self.assignmentMin[current.name] = sfLimits[properRank]
                 
@@ -394,6 +392,8 @@ class ARBor(CRESTree):
         
         newParent = genomeType
         realName = node.name.replace(add,"")
+        if not realName in self.nodeNames:
+            return node.name
         realPath = self.getPath(self.getNode(realName))
         nodePath = self.getPath(node)
         for i in range(1,min(rank,len(realPath))-1):
@@ -441,7 +441,7 @@ class ARBor(CRESTree):
         name = node.name
         if " (" in name:
             inBrackets = name[name.rfind("(")+1:name.rfind(")")]
-            if not inBrackets in CRESTree.depths.values()+["superphylum"]:
+            if not inBrackets in CRESTree.depths.values()+["superphylum","Chloroplast"+"Mitochondrion"]:
                 name = name[:name.find(" (")]                        
         if name in self.ranks: # other tests incl. "ales" "aceae"
             return self.ranks[name]
@@ -566,11 +566,15 @@ class ARBor(CRESTree):
         
         if ncbi_name:
             if not " " in ncbi_name:
-                #print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
+                print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
                 return False
             spParts = ncbi_name.split(" ")
-            if not (spParts[0] == taxa[-1] or taxa[-1] == "Eukaryota"):
-                #print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
+            if taxa[-1] in ["Eukaryota", "Chloroplast", "Mitochondrion"]:
+                # Silva v128 organelle
+                taxa.append(spParts[0])
+                
+            elif (spParts[0] != taxa[-1]): 
+                print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
                 return False
             
             name = ncbi_name        
