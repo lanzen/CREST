@@ -366,7 +366,10 @@ class ARBor(CRESTree):
                 else:
                     parentName = "%s %s incertae sedis" %(current.name, actualRankName)
                 
-                if parentName in self.nodeNames:
+                if parentName == self.getParent(current).name:
+                    break
+                
+                elif parentName in self.nodeNames:
                     intermediate = self.getNode(parentName)
                 else:
                     intermediate = self.addNode(parentName, parent, sfLimits[properRank-1])
@@ -374,7 +377,7 @@ class ARBor(CRESTree):
                 self.assignmentMin[current.name] = sfLimits[properRank]
                 
                 tp = [str(n) for n in self.getPath(current)] #DEBUG                
-                print "DEBUG: --> %s" % tp                   
+                print "DEBUG: --> %s" % tp      
                     
             for child in self.getImmediateChildren(current):
                 delQ.put(child) 
@@ -393,7 +396,8 @@ class ARBor(CRESTree):
         newParent = genomeType
         realName = node.name.replace(add,"")
         if not realName in self.nodeNames:
-            return node.name
+            print "DEBUG: Not in 18S taxonomy"
+            return self.getParent(node).name
         realPath = self.getPath(self.getNode(realName))
         nodePath = self.getPath(node)
         for i in range(1,min(rank,len(realPath))-1):
