@@ -6,7 +6,6 @@ import Bio.SeqIO
 from LCAClassifier.taxa import CRESTree
 
 
-
 # TODO completely revise to comply with new map format and enforce stricter family names
 
 
@@ -32,6 +31,14 @@ ggCodes = {"d": CRESTree.DOMAIN,
            "f": CRESTree.FAMILY,
            "g": CRESTree.GENUS,
            "s": CRESTree.SPECIES} 
+
+def isInt(str):
+    try:
+        int(str)
+        return True
+    except ValueError:
+        return False
+
 
 class ARBor(CRESTree):
     """A Tree with specific functions for handling data exported from ARB"""
@@ -78,10 +85,11 @@ class ARBor(CRESTree):
         """Parses an NDS Export file from Silva with accession, silva tax. and
         NCBI Tax."""
         
-        plastidNames = ["chloroplast","Chloroplast","Plastid"]
-        organelleFind = dict((k,self.plastid) for k in plastidNames)
-        for k in ["Mitochondrion","mitochondrion","mitochondria","Mitochondria"]:
-            organelleFind[k] = self.mito
+        if self.rearrangeOrganelles:
+            plastidNames = ["chloroplast","Chloroplast","Plastid"]
+            organelleFind = dict((k,self.plastid) for k in plastidNames)
+            for k in ["Mitochondrion","mitochondrion","mitochondria","Mitochondria"]:
+                organelleFind[k] = self.mito
         
         ndsFile = open(filename, 'r')
 
@@ -133,19 +141,18 @@ class ARBor(CRESTree):
                     if ((len(parts) > 3) and k in parts[3]) or k in taxonomy:
                         parent = organelleFind[k]
                     if k in taxa:            
-                        taxa.pop(taxa.index(k))          
+                        taxa.pop(taxa.index(k))   
+                        
+                # Fix organelle names
+                for i in range(0,len(taxa)):
+                    if parent == self.plastid:
+                        taxa[i]+=(" (Chloroplast)")
+                    elif parent == self.mito:
+                        taxa[i]+=(" (Mitochondrion)")
+                       
             else:
-                parent = self.cellOrg
-                
-            # Fix organelle names
-            for i in range(0,len(taxa)):
-                if parent == self.plastid:
-                    taxa[i]+=(" (Chloroplast)")
-                elif parent == self.mito:
-                    taxa[i]+=(" (Mitochondrion)")
-#             if parent == self.plastid or parent == self.mito:
-#                 print "DEBUG:",taxa
-
+                parent = self.cellOrg            
+            
                                           
             # Now go through taxa one by one again            
             for i in range(0,len(taxa)):
@@ -162,9 +169,11 @@ class ARBor(CRESTree):
                 rank = CRESTree.depths[depth]
                 
                 #Remove explicit rank from greengenes node since not useful
-                if self.GGMode and len(taxa[i])>3 and taxa[i][1:3]=="__":                    
+                dsym = ""
+                if self.GGMode and len(taxa[i])>3 and taxa[i][1:3]=="__":
+                    dsym = taxa[i][0:1]                    
                     taxa[i] = taxa[i][3:]
-                    dsym = taxa[i][0:1]                
+                                                                 
                 
                 #Fix parent of self ambigousity error
                 if taxa[i] == parent.name or taxa[i].startswith("Unknown "):
@@ -567,23 +576,28 @@ class ARBor(CRESTree):
 
     # NDS helper methods
     def _useNameInTaxonomy(self, taxa, ncbi_name=None):
-        
+        i=1
         if ncbi_name:
             if not " " in ncbi_name:
-                print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
+                #print "DEBUG: discarding incomplete sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
                 return False
             spParts = ncbi_name.split(" ")
             if taxa[-1] in ["Eukaryota", "Chloroplast", "Mitochondrion", "Mitochondria"]:
                 # Silva v128 organelle
                 taxa.append(spParts[0])
                 
-            elif (spParts[0] != taxa[-1]): 
-                print "DEBUG: discarding sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
-                return False
+            else:                
+                while isInt(taxa[-i]) and len(taxa)>i:
+                    i+=1 
+                                           
+                if (spParts[0] != taxa[-i]): 
+                    #print "DEBUG: discarding sp. name with wrong genus: %s, parent: %s" % (ncbi_name, taxa[-i])
+                    return False
+                #else: print "DEBUG: using sp. name %s, parent: %s" % (ncbi_name, taxa[-i])
             
             name = ncbi_name        
         else:
-            name = taxa[-1]
+            name = taxa[-i]
         
         for nsKey in ARBor.nonSpeciesKeys:
             if nsKey in name:

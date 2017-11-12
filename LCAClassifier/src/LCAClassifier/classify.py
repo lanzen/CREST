@@ -10,8 +10,6 @@ CREST 3.0 major update that supports taxon-specific assignment cutoff, requires 
 @author: andersl
 '''
 
-# TODO add support for ignoring super- and kingdom in  
-
 
 import sys
 import os
@@ -153,7 +151,6 @@ class ClassificationTree(CRESTree):
             nodeID = parts[0]
             name = parts[1]
             similarityCutoff = float(parts[3])
-            oldRankMarker = False
           
             # Compability to old silvamod.map (v106)
             #if similarityCutoff>=100.0: 
@@ -175,6 +172,7 @@ class ClassificationTree(CRESTree):
                 sys.stderr.write("Error: Node %s (%s) not found in tree!\n" % (nodeID,name))                
                                 
         theMap.close()
+        print "..done"
         
     def pruneUnassigned(self, node):
         """
@@ -236,7 +234,7 @@ class LCAClassifier():
         given if the dataset name comes from a BLAST file rather than OTU table
         (abundance set to 1 and only in the unique dataset i.e. reads rather than OTUs)
         """
-
+        print "Processing alignments and assigning query sequences..."
         for record in records:
             qName = record.query.split(" ")[0]
             
@@ -317,10 +315,11 @@ class LCAClassifier():
                         lcaNode = self.tree.addNode(u_name, parent=parent)              
                 
                 # Last check whether to remove because eukaryote and if not assign  
-                if euk_filter and self.tree.getDepth(lcaNode)>1 and self.tree.getPath(lcaNode)[1].name == "Eukaryota":
+                if euk_filter and self.tree.getDepth(lcaNode)>1 and self.tree.getPath(lcaNode)[1].name.startswith("Eukaryota"):
                     self.assignOTU(otu, self.tree.noHits)
                 else:
                     self.assignOTU(otu, lcaNode)
+        print "...done"
 
     def setBitscoreRange(self, percent):
         self.bsr = 1 - float(percent) / 100
@@ -510,6 +509,13 @@ def main():
                            "specifying the distribution across datasets "
                            "for the sequences classified."
                            "Cannot be used with option --otuin."))
+    
+    parser.add_option("-l", "--tabbed",
+                      action="store_true", dest="tabbedInput",
+                      default = False,                      
+                      help=("Tabbed alginment input according to NCBI blastall format"
+                            "(Recommended for vsearch using outputoption --blast6out,"
+                            "although XML format is recommended for BLAST+) "))
     
     parser.add_option("-i", "--fastain",
                       dest="fastafile",
@@ -707,8 +713,13 @@ def main():
             results = gzip.open(a,"r")
         else:
             results = open(a)
-        #Parse blast (only XML)
-        records = NCBIXML.parse(results)        
+        
+        if options.tabbedInput:
+            records = NCBIXML.parse(results) #BlastTabParser
+        else:
+            records = NCBIXML.parse(results)
+        
+                
         if options.otus or options.biom or options.fastafile:
             ud = None
         else:
