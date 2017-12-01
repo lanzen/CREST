@@ -2,3 +2,4 @@
 silvamod128 = ${buildout:directory}/parts/flatdb/silvamod
 greengenes = ${buildout:directory}/parts/flatdb/greengenes
 unite = ${buildout:directory}/parts/flatdb/unite
+amoa = ${buildout:directory}/parts/flatdb/amoa
