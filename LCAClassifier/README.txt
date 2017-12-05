@@ -12,6 +12,8 @@ Greengenes is an alternative reference database for classification of prokaryoti
 
 Unite seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v7.2, 2017-10-10
 
+amoA (added Dec. 2017) is a reference database for phylogenetic (not taxonomic) classification of ammonia monooxidase A (amoA) amplicons developed by Alves et al. (manuscript submitted)  
+
 To update your database files, new versions can be downloaded separately (wihtout the need to install a new version of CREST), from http://services.cbu.uib.no/supplementary/crest
 
 ## Installation
