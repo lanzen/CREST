@@ -661,11 +661,11 @@ def main():
             else:
                 if "numreads=" in seq_record.id:
                     readPopulation = int(seq_record.id[seq_record.id.find("numreads=") +
-                                             len("numreads="):-1])
+                                             len("numreads="):])
                      
                 elif "size=" in seq_record.id:
                     readPopulation = int(seq_record.id[seq_record.id.find("size=") +
-                                             len("size="):-1])
+                                             len("size="):])
               
                 else:
                     readPopulation = 1
