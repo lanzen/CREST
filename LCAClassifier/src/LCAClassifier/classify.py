@@ -343,28 +343,33 @@ class LCAClassifier():
     def writeAllSequences(self, fastaOut, writeQual=False):
         for key in self.otus:
             otu = self.otus[key]
+            
             try:
-                if writeQual:
-                    seq=otu.quality
-                else:
-                    seq=otu.sequence
-                fastaOut.write(">%s %s\n%s\n" % (otu.name, self.tree.getFormattedTaxonomyPath(otu.classification),                                               
-                                                 seq))
+                if otu.sequence:
+                    if writeQual:
+                        seq=otu.quality
+                    else:
+                        seq=otu.sequence
+                    fastaOut.write(">%s %s\n%s\n" % (otu.name, self.tree.getFormattedTaxonomyPath(otu.classification),                                               
+                                                     seq))
             except:
-                sys.stderr.write("Problem with assignment of",otu,": classification not found!")
+                sys.stderr.write("Problem with assignment of %s: classification not found!" %otu.name)
                 fastaOut.write(">%s %s\n%s\n" % (otu.name, "No classification!",                                               
                                                  otu.sequence))
             
-    def writeOTUsWithAssignments(self, otusOut, sep="\t"):
+    def writeOTUsWithAssignments(self, otusOut, sep="\t"):        
         otusOut.write("OTU"+sep)
         for ds in self.datasets:
             otusOut.write(ds+sep)
         otusOut.write("classification\n")
         for key in self.otus.keys():
             otu = self.otus[key]
-            otusOut.write(otu.name+sep)
-            otusOut.write (sep.join(str(oa) for oa in otu.abundances)) 
-            otusOut.write("%s%s\n" % (sep,self.tree.getFormattedTaxonomyPath(otu.classification)))
+            if otu.classification:
+                otusOut.write(otu.name+sep)
+                otusOut.write (sep.join(str(oa) for oa in otu.abundances)) 
+                otusOut.write("%s%s\n" % (sep,self.tree.getFormattedTaxonomyPath(otu.classification)))
+            else:
+                sys.stderr.write("Warning: %s not present in FASTA input file\n" %otu.name)
             
     def writeAssignedCount(self, outFile, countType="totalAbundance", depths=CRESTree.depths):
         """
