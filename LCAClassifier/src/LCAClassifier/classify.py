@@ -424,8 +424,10 @@ class LCAClassifier():
                 keep.append(True)
                 datasetheaders += self.datasets[i]+"\t"
             else:
-                keep.append(False)
+                rootAb.append(0.0)
+                keep.append(False)                
             i+=1
+        
         
         outFile.write("Rank\tTaxonpath\tTaxon\t%s\n" % datasetheaders[:-1])
 
@@ -439,11 +441,11 @@ class LCAClassifier():
                 taRaw = node.assignments.getAbundances()
                 i=0
                 ra=[]
-                for a in taRaw:                    
+                for a in taRaw:                              
                     if keep[i]:
                         ra.append(float(a)/rootAb[i])
                     i+=1
-                
+                                
                 #Check min. abundance (in at least one dataset)
                 aboveMin = True in [a>=minimalMaxAbundance for a in ra]
                 if aboveMin:
