@@ -192,7 +192,7 @@ class ClassificationTree(CRESTree):
 class LCAClassifier():
     """A classifier instance. Requires a tree for assignments"""
 
-    def __init__(self, name, tree, datasets = None, otus={}):
+    def __init__(self, name, tree, datasets = None, otus={}, bi = None):
         self.name = name
         self.tree = tree
         if datasets:
@@ -203,13 +203,18 @@ class LCAClassifier():
         self.bsr = BSR_DEFAULT
         self.ms = MS_DEFAULT
         self.otus = otus
-        
-    def assignOTU(self, otu, node, primary=True):
+        self.bi = bi
+         
+        if self.bi:
+            self.biWeighted = [0 for i in range(len(self.datasets))]
+            self.biAssigned = [0 for i in range(len(self.datasets))]
+
+    def assignOTU(self, otu, node, primary=True, bi=True):
         """
         Accepts and OTU instance and classifies it to the given node in the 
         reference tree. Traverses the tree downwards to add abundances and 
         diversity to parent nodes, creating or manipulating AssignmentInfo
-        instances as neccesary
+        instances as neccesary. Also update BI if applied.
         """
         
         if primary:
@@ -221,10 +226,27 @@ class LCAClassifier():
             node.assignments = ai
             
         ai.addFromOTU(otu, primary)
+        
+        # Update biotic indices
+        nn = node.name
+        if " (" in nn:
+            nn = nn[:nn.find(" (")]
+        
+        modifyBI = bi and self.bi and (nn in self.bi)
+        if modifyBI:
+            weight = self.bi[nn]
+            self.biWeighted = [self.biWeighted[i] + otu.abundances[i]*weight
+                               for i in range(len(self.datasets))]
+            
+            self.biAssigned = [self.biAssigned[i] + otu.abundances[i]
+                               for i in range(len(self.datasets))]
+            
+            
         #Traverse tree downwards to the root
         if (node is not self.tree.tree.root) and (node is not self.tree.noHits):
-            self.assignOTU(otu, self.tree.getParent(node), primary=False)
+            self.assignOTU(otu, self.tree.getParent(node), primary=False, bi=modifyBI)
     
+        
     
     def classify_records(self, records, verbose=False, minFilter=True,
                euk_filter=False, noUnknowns=False, uniqueDataset=None):
@@ -407,7 +429,7 @@ class LCAClassifier():
                                         self.tree.getFormattedTaxonomyPath(node),
                                         node.name, formattedAb))
                 
-    def writeRelativeAbundances(self, outFile,minimalMaxAbundance=0, depths=CRESTree.depths): 
+    def writeRelativeAbundances(self, outFile, minimalMaxAbundance=0, depths=CRESTree.depths): 
         
         if not (hasattr(self.tree.tree.root, "assignments") or 
                 sum(self.tree.tree.root.assignments.getAbundances())==0):
@@ -453,6 +475,16 @@ class LCAClassifier():
                     outFile.write("%s\t%s\t%s\t%s\n" % (dn,
                                         self.tree.getFormattedTaxonomyPath(node),
                                         node.name, formattedAb))
+                    
+    def writeBI(self, biFile):
+        for i in len(self.datasets):
+            ds = self.datasets[i]
+            if self.biAssigned==0:
+                biValue = "NA"
+            else:
+                biValue = float(self.biWeighted[i])/float(self.biAssigned[i])
+            biFile.write("%s\t%s\n" % (ds,biValue))
+        
                     
 def main():
 
@@ -559,6 +591,11 @@ def main():
                       default=False,
                       help="Do not create \"Unknown\" nodes when min. similarity filter \
                       was activated, pushing assignment to lower rank")
+    
+    parser.add_option('-a', '--biotic_index_map',
+                      dest='bi',
+                      default=None,
+                      help=('Calculate biotic index using tab-separated file with taxon names and weights'))
 
     parser.add_option('-c', '--config',
                       dest='config',
@@ -703,15 +740,24 @@ def main():
                (config.DATABASES[options.dbname], options.dbname))
 
     reftree = ClassificationTree(treFile, mapFile)
+        
+    bi=None
+    if options.bi:
+        biMap = open(options.bi, "r")
+        bi={}
+        for line in biMap:
+            taxon_name,weight = line[:-1].split("\t")
+            bi[taxon_name] = int(weight)
+    
     if options.otus or options.biom or options.fastafile:
         lca = LCAClassifier(name = "classifier instance", tree = reftree,
-                            datasets = datasets, otus=otus)
+                            datasets = datasets, otus=otus, bi = bi)
     else:
         lca = LCAClassifier(name = "classifier instance", tree = reftree,
-                            datasets = datasets)
+                            datasets = datasets, bi=bi)
         
     lca.setBitscoreRange(options.bitScoreRange)
-    lca.setMinScore(options.minScore)
+    lca.setMinScore(options.minScore)    
     
    
     # Parse blast files! 
@@ -792,7 +838,14 @@ def main():
         qualName = qualName[:qualName.find(".")] +"_Assigned.fasta.qual"
         qualFile= open(os.path.join(stub,(qualName)), 'w')
         lca.writeAllSequences(qualFile,writeQual=True) 
-        qualFile.close()      
+        qualFile.close()   
+        
+    if options.bi:
+        biName = os.path.basename(options.bi)
+        biOut = biName[:biName.find(".")+"_BI.tsv"]
+        biFile = open(os.path.join(stub,(biOut)), "w")
+        lca.writeBI(biFile)
+        biFile.close()
 
 if __name__ == "__main__":
 
