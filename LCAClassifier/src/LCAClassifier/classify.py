@@ -53,9 +53,11 @@ class AssignmentInfo:
         self.doubletons = [0 for i in range(dims)]
         
     def addFromOTU(self, otu, primary = True):
-        """Updates abundance, diversity etc. from OTU. Primary also adds to assigned abundances"""
+        """Updates abundance, diversity etc. from OTU. Primary also adds to 
+        assigned abundances"""
         if not len(otu.abundances) == self.dims:
-            sys.stderr.write("Error: Incorrect dimensions in OTU table for %s" %otu.name)
+            sys.stderr.write("Error: Incorrect dimensions in OTU table for %s" 
+                             %otu.name)
             return
         
         self.totalAbundance = [self.totalAbundance[i] + otu.abundances[i] 
@@ -86,7 +88,8 @@ class AssignmentInfo:
         return self.otuRichness
     
     def getChaoEstimate(self):
-        """@return chao1 estimate based on number of singletons, doubletons and total div."""
+        """@return chao1 estimate based on number of singletons, doubletons and 
+        total div."""
         chao=[]
         for i in range(self.dims):
             if self.doubletons[i]>0:
@@ -98,11 +101,15 @@ class AssignmentInfo:
         return chao
         
 class OTU:
-    """Represents an OTU, which has a sequence, abundance across datasets, and classification"""
+    """Represents an OTU, which has a sequence, abundance across datasets, 
+    and classification"""
     def __init__(self, name, abundances, sequence=None, 
                  quality=None, classification=None):
         self.name = name #given by dict in classifier?
-        self.abundances = abundances #same dimension and order as classifier datasets
+        
+        #same dimension and order as classifier datasets
+        self.abundances = abundances 
+        
         self.sequence = sequence        
         self.quality = quality
         self.classification = classification
@@ -126,7 +133,9 @@ class ClassificationTree(CRESTree):
       
     def __init__(self, trefile, mapfile):
                 #Invoke superclass constructor 
-        CRESTree.__init__(self, Phylo.read(trefile,"newick", values_are_confidence=True, rooted=True))
+        CRESTree.__init__(self, Phylo.read(trefile,"newick", 
+                                           values_are_confidence=True, 
+                                           rooted=True))
         
         self.noHits = self.addNode("No hits", self.root)        
         
@@ -138,7 +147,8 @@ class ClassificationTree(CRESTree):
         print "..done"
         
         # the two accession number patterns that exist
-        accPatterns = [re.compile("\D\D\d\d\d\d\d\d\Z"), re.compile("\D\d\d\d\d\d\Z"),
+        accPatterns = [re.compile("\D\D\d\d\d\d\d\d\Z"), 
+                       re.compile("\D\d\d\d\d\d\Z"),
                        re.compile("\D\D\D\D\d\d\d\d\d\d\d\d\d\Z"),
                        re.compile("\D\D\D\D\d\d\d\d\d\d\d\d\Z")]
         
@@ -164,12 +174,15 @@ class ClassificationTree(CRESTree):
                 self.nodeNames[name] = n                
                 
                 # Unless this is just an accession, update node name and assignment min.
-                if similarityCutoff>=0 and not (accPatterns[0].match(name) or accPatterns[1].match(name) or
-                        accPatterns[2].match(name) or accPatterns[3].match(name)):
+                if similarityCutoff>=0 and not (accPatterns[0].match(name) or 
+                                                accPatterns[1].match(name) or 
+                                                accPatterns[2].match(name) or 
+                                                accPatterns[3].match(name)):
                     self.assignmentMin[name] = similarityCutoff
                     n.name = name    
             else:
-                sys.stderr.write("Error: Node %s (%s) not found in tree!\n" % (nodeID,name))                
+                sys.stderr.write("Error: Node %s (%s) not found in tree!\n" % 
+                                 (nodeID,name))                
                                 
         theMap.close()
         print "..done"
@@ -266,7 +279,8 @@ class LCAClassifier():
                 # OTUs are created from Fasta files in case missing of OTU table
                 # (or in case OTU table is not given). Othwerise a new one is created
 
-                abFulFix = [int(uniqueDataset==self.datasets[i]) for i in range(len(self.datasets))]
+                abFulFix = [int(uniqueDataset==self.datasets[i]) for i in 
+                            range(len(self.datasets))]
                 otuName = uniqueDataset+":"+qName
                 otu = OTU(name=otuName, abundances=abFulFix)
                 self.otus[otuName] = otu
@@ -301,7 +315,8 @@ class LCAClassifier():
                 lcaNode = self.tree.getCommonAncestor(allHitNodes)
                                                 
                 if not lcaNode:
-                    sys.stderr.write("DEBUG: No LCA. Assigning to No Hits:\n%s" % allHitNodes)
+                    sys.stderr.write("DEBUG: No LCA. Assigning to No Hits:\n%s" 
+                                     % allHitNodes)
                     self.assignOTU(otu, self.tree.noHits)
                     continue
                                  
@@ -328,7 +343,8 @@ class LCAClassifier():
                     else:
                         # Create unknown node - a new one for each OTU
                         i=1
-                        u_name = "Unknown %s %s %s" % (parent.name, self.tree.getRank(lcaNode), i)                        
+                        u_name = "Unknown %s %s %s" % (parent.name, s
+                                                       elf.tree.getRank(lcaNode), i)                        
                         while u_name in self.tree.nodeNames:
                             i+=1
                             u_name = "Unknown %s %s %s" % (parent.name, 
@@ -372,7 +388,8 @@ class LCAClassifier():
                         seq=otu.quality
                     else:
                         seq=otu.sequence
-                    fastaOut.write(">%s %s\n%s\n" % (otu.name, self.tree.getFormattedTaxonomyPath(otu.classification),                                               
+                    fastaOut.write(">%s %s\n%s\n" % (otu.name, 
+                                                     self.tree.getFormattedTaxonomyPath(otu.classification),                                               
                                                      seq))
             except:
                 sys.stderr.write("Problem with assignment of %s: classification not found!" %otu.name)
@@ -842,7 +859,7 @@ def main():
         
     if options.bi:
         biName = os.path.basename(options.bi)
-        biOut = biName[:biName.find(".")+"_BI.tsv"]
+        biOut = biName[:biName.find(".")]+"_BI.tsv"
         biFile = open(os.path.join(stub,(biOut)), "w")
         lca.writeBI(biFile)
         biFile.close()
@@ -850,3 +867,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+    
