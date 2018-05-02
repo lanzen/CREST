@@ -343,8 +343,7 @@ class LCAClassifier():
                     else:
                         # Create unknown node - a new one for each OTU
                         i=1
-                        u_name = "Unknown %s %s %s" % (parent.name, s
-                                                       elf.tree.getRank(lcaNode), i)                        
+                        u_name = "Unknown %s %s %s" % (parent.name, self.tree.getRank(lcaNode), i)                        
                         while u_name in self.tree.nodeNames:
                             i+=1
                             u_name = "Unknown %s %s %s" % (parent.name, 
