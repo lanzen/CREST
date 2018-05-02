@@ -222,7 +222,7 @@ class LCAClassifier():
             self.biWeighted = [0 for i in range(len(self.datasets))]
             self.biAssigned = [0 for i in range(len(self.datasets))]
 
-    def assignOTU(self, otu, node, primary=True, bi=True):
+    def assignOTU(self, otu, node, primary=True, bi=True, verbose=False):
         """
         Accepts and OTU instance and classifies it to the given node in the 
         reference tree. Traverses the tree downwards to add abundances and 
@@ -232,11 +232,12 @@ class LCAClassifier():
         
         if primary:
             otu.classifyTo(node)
+            
         if hasattr(node,"assignments"):
             ai = node.assignments            
         else:
             ai = AssignmentInfo(len(self.datasets))
-            node.assignments = ai
+            node.assignments = ai            
             
         ai.addFromOTU(otu, primary)
         
@@ -245,21 +246,33 @@ class LCAClassifier():
         if " (" in nn:
             nn = nn[:nn.find(" (")]
         
-        modifyBI = bi and self.bi and (nn in self.bi)
-        if modifyBI:
-            weight = self.bi[nn]
-            self.biWeighted = [self.biWeighted[i] + otu.abundances[i]*weight
-                               for i in range(len(self.datasets))]
-            
-            self.biAssigned = [self.biAssigned[i] + otu.abundances[i]
-                               for i in range(len(self.datasets))]
+        if bi and self.bi:
+            if nn in self.bi:
+                bi=False
+                weight = self.bi[nn]
+                self.biWeighted = [self.biWeighted[i] + otu.abundances[i]*weight
+                                   for i in range(len(self.datasets))]
+                
+                self.biAssigned = [self.biAssigned[i] + otu.abundances[i]
+                                   for i in range(len(self.datasets))]
+                
+                modifyBI = False            
+         
+                if verbose:
+                    sumAssigned = sum(self.biAssigned)
+                    currentBI = float(sum(self.biWeighted)) / float(sumAssigned)
+                    print("BI: %s (%s) has weight %s. Total classified: %s, Mean BI: %s"
+                          %(nn, otu.name, weight, sumAssigned, currentBI))            
+                        
+            elif verbose:            
+                print("BI: %s not in BI list, proceeding to parent" % nn)
             
             
         #Traverse tree downwards to the root
         if (node is not self.tree.tree.root) and (node is not self.tree.noHits):
-            self.assignOTU(otu, self.tree.getParent(node), primary=False, bi=modifyBI)
+            self.assignOTU(otu, self.tree.getParent(node), primary=False, 
+                           bi=bi, verbose=verbose)
     
-        
     
     def classify_records(self, records, verbose=False, minFilter=True,
                euk_filter=False, noUnknowns=False, uniqueDataset=None):
@@ -355,7 +368,7 @@ class LCAClassifier():
                 if euk_filter and self.tree.getDepth(lcaNode)>1 and self.tree.getPath(lcaNode)[1].name.startswith("Eukaryota"):
                     self.assignOTU(otu, self.tree.noHits)
                 else:
-                    self.assignOTU(otu, lcaNode)
+                    self.assignOTU(otu, lcaNode, verbose=verbose)
         print "...done"
 
     def setBitscoreRange(self, percent):
@@ -493,7 +506,7 @@ class LCAClassifier():
                                         node.name, formattedAb))
                     
     def writeBI(self, biFile):
-        for i in len(self.datasets):
+        for i in range(len(self.datasets)):
             ds = self.datasets[i]
             if self.biAssigned==0:
                 biValue = "NA"
