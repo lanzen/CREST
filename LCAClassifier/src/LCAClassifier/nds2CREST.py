@@ -37,6 +37,7 @@ def main():
                       default=None,
                       help="Tab-separated text file containing explicit ranks for taxa")
     
+        
     parser.add_option("-g", "--greengenes_ranks",
                       action="store_true",dest="GGRankInfo",
                       default=False,

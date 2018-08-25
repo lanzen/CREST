@@ -255,8 +255,6 @@ class LCAClassifier():
                 
                 self.biAssigned = [self.biAssigned[i] + otu.abundances[i]
                                    for i in range(len(self.datasets))]
-                
-                modifyBI = False            
          
                 if verbose:
                     sumAssigned = sum(self.biAssigned)
