@@ -16,20 +16,24 @@ if __name__ == "__main__":
     for line in longNDS:
         items = line[:-1].split("\t")
         acc = items[0]
-        short = items[1]
+        silva = items[1]
         name = items[2]
-        long = items[3]
+        ncbi = items[3]
         
         bchloro = "Bacteria_Bacteria (superkingdom)/Terrabacteria_Cyanobacteria/Oxyphotobacteria/Chloroplast"
-        short = short.replace(bchloro, "Eukaryota/Chloroplast")
+        silva = silva.replace(bchloro, "Eukaryota/Chloroplast")
         bmit = "Bacteria_Bacteria (superkingdom)/Proteobacteria (superphylum)_Proteobacteria/Alphaproteobacteria/Rickettsiales/Mitochondria"
-        short = short.replace(bmit, "Eukaryota/Mitochondria")
+        silva = silva.replace(bmit, "Eukaryota/Mitochondria")
         
-        silvaTaxa = re.split('[_/;]', short)
-        ncbiTaxa = re.split('[_/;]', long)
+        if ncbi[-1] == ";":
+            ncbi = ncbi[:-1]
+        silvaTaxa = re.split('[_/;]', silva)
+        ncbiTaxa = re.split('[_/;]', ncbi)
         if silvaTaxa[-1] in ncbiTaxa:
             corpos = ncbiTaxa.index(silvaTaxa[-1])
-            if corpos > len(ncbiTaxa):
+            if ((corpos +1) < len(ncbiTaxa)) and len(silvaTaxa) < len(ncbiTaxa):       
                 silvaTaxa += ncbiTaxa[corpos+1:]
+            
+       
         
         print "\t".join([acc,"/".join(silvaTaxa),name])

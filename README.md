@@ -6,7 +6,7 @@ Lanzén A , Jørgensen SL, Huson D, Gorfer M, Grindhaug SH, Jonassen I, Øvreås
 
 ## Classification databases supported
 
-SilvaMod was derived by manual curation of the SILVA nr SSU Ref. It supports SSU sequences from bacteria and archaea (16S) as well as eukaryotes (18S), with a high level of manual curation and defined environmental clades.
+SilvaMod was derived by manual curation of the SILVA nr SSU Ref. It supports SSU sequences from bacteria and archaea (16S) as well as eukaryotes (18S), with a high level of manual curation and defined environmental clades. Release supported: Silva nr SSU Ref v128 (Sep 2016)
 
 Greengenes is an alternative reference database for classification of prokaryotic 16S, curated and maintained by The Greengenes Database Consortium. Release supported: May 2013
 
@@ -25,7 +25,7 @@ Installation procedure. It also requires Python-Dev.
 
 Download the latest stable distribution and expand it using tar:
 
-`tar -xvzf LCAClassifier3.0.6.tar.gz`
+`tar -xvzf LCAClassifier3.0.7.tar.gz`
 
 Or download the development version:
 

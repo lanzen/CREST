@@ -6,11 +6,13 @@ Lanzén A , Jørgensen SL, Huson D, Gorfer M, Grindhaug SH, Jonassen I, Øvreås
 
 ## Classification databases supported
 
-SilvaMod was derived by manual curation of the SILVA nr SSU Ref. It supports SSU sequences from bacteria and archaea (16S) as well as eukaryotes (18S), with a high level of manual curation and defined environmental clades.
+SilvaMod was derived by manual curation of the SILVA nr SSU Ref. It supports SSU sequences from bacteria and archaea (16S) as well as eukaryotes (18S), with a high level of manual curation and defined environmental clades. Release supported: Silva nr SSU Ref v128 (Sep 2016)
 
 Greengenes is an alternative reference database for classification of prokaryotic 16S, curated and maintained by The Greengenes Database Consortium. Release supported: May 2013
 
-Unite seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v7, 2016-01-31
+Unite seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v7.2, 2017-10-10
+
+amoA is a reference database for phylogenetic (not taxonomic) classification of ammonia monooxidase A (amoA) amplicons developed by <a href="https://www.nature.com/articles/s41467-018-03861-1">Alves et al. (2018)</a>.
 
 To update your database files, new versions can be downloaded separately (wihtout the need to install a new version of CREST), from http://services.cbu.uib.no/supplementary/crest
 
@@ -23,7 +25,7 @@ Installation procedure. It also requires Python-Dev.
 
 Download the latest stable distribution and expand it using tar:
 
-`tar -xvzf LCAClassifier3.0.3.tar.gz`
+`tar -xvzf LCAClassifier3.0.7.tar.gz`
 
 Or download the development version:
 

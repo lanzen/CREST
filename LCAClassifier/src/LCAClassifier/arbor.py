@@ -4,6 +4,7 @@ import Queue
 import Bio.SeqIO
 
 from LCAClassifier.taxa import CRESTree
+from posix import access
 
 
 # TODO completely revise to comply with new map format and enforce stricter family names
@@ -44,7 +45,8 @@ class ARBor(CRESTree):
     """A Tree with specific functions for handling data exported from ARB"""
 
     nonSpeciesKeys = ["uncultured", "sp.", "unidentified", "metagenome",
-                      "enrichment", "clone", "Unknown", "sp.", "spp."]
+                      "environmental","enrichment",
+                       "clone", "Unknown", "sp.", "spp.", "bacteri"]
     
     def __init__(self, name=None, rearrangeOrganelles=True, GGRankInfo=False):
         CRESTree.__init__(self)        
@@ -101,6 +103,8 @@ class ARBor(CRESTree):
             if "." in accession:
                 accession = accession[:accession.find(".")]
             
+            print "DEBUG %s" % accession
+            
             taxonomy = parts[1].replace("; ",";")
             if self.GGMode:            
                 taxa = re.split('[/;]', taxonomy)
@@ -140,6 +144,7 @@ class ARBor(CRESTree):
                 for k in organelleFind:
                     if ((len(parts) > 3) and k in parts[3]) or k in taxonomy:
                         parent = organelleFind[k]
+                        print "DEBUG: %s : %s" % (taxa, organelleFind[k])
                     if k in taxa:            
                         taxa.pop(taxa.index(k))   
                         
@@ -193,7 +198,7 @@ class ARBor(CRESTree):
                     
                         node = self.getNode(taxa[i])
                         # Set new parent if parent matches
-                        #print "DEBUG: Parent %s, node: %s" %(parent.name, node.name)
+                        print "DEBUG: Parent %s, node: %s" %(parent.name, node.name)
                         taxa[i] += " (%s)" % parent.name
                 
                 if taxa[i] in self.nodeNames:
@@ -210,8 +215,8 @@ class ARBor(CRESTree):
                 self.accessions[accession] = parent
             else:
                 #self.rejected += accession
-                sys.stderr.write("Warning: Accession %s occurs more than once! " % accession)
-                sys.stderr.write("Only the 1st will be used.\n")
+                sys.stderr.write("Warning: Accession %s occurs more than once!\n" % accession)
+                
         ndsFile.close()    
 
     def processChangesMetadata(self, changeFile):
@@ -575,33 +580,37 @@ class ARBor(CRESTree):
     
 
     # NDS helper methods
-    def _useNameInTaxonomy(self, taxa, ncbi_name=None):
+    def _useNameInTaxonomy(self, taxa, ncbi_name=None):               
+        
         i=1
         if ncbi_name:
             if not " " in ncbi_name:
-                #print "DEBUG: discarding incomplete sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
+                print "DEBUG: discarding incomplete sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
                 return False
+            
+            
             spParts = ncbi_name.split(" ")
             if taxa[-1] in ["Eukaryota", "Chloroplast", "Mitochondrion", "Mitochondria"]:
                 # Silva v128 organelle
+                for nsKey in ARBor.nonSpeciesKeys:
+                    if nsKey in ncbi_name:
+                        return False              
                 taxa.append(spParts[0])
-                
+                 
             else:                
                 while isInt(taxa[-i]) and len(taxa)>i:
                     i+=1 
-                                           
-                if (spParts[0] != taxa[-i]): 
-                    #print "DEBUG: discarding sp. name with wrong genus: %s, parent: %s" % (ncbi_name, taxa[-i])
+                                       
+                if (spParts[0] != taxa[-i]):
+                    print "DEBUG: discarding sp. name with wrong genus: %s, parent: %s" % (ncbi_name, taxa[-i])
                     return False
-                #else: print "DEBUG: using sp. name %s, parent: %s" % (ncbi_name, taxa[-i])
-            
+        
             name = ncbi_name        
         else:
             name = taxa[-i]
         
         for nsKey in ARBor.nonSpeciesKeys:
             if nsKey in name:
-                #print "DEBUG: discarding sp. name: %s, parent: %s" % (name, taxa[-1])
                 return False
         
         #print "DEBUG: keeping sp. name %s" % (name)
