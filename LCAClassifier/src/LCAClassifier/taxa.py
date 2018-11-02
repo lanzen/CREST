@@ -99,6 +99,12 @@ class CRESTree:
         self.assignmentMin[node.name] = assignmentMin
         self.parents[node] = parent
         return node
+    
+    def isParent(self, node):
+        node=self.verifyNode(node)
+        if self.clades:
+            return True
+        else: return False
         
     def getImmediateChildren(self, node):
         node = self.verifyNode(node)

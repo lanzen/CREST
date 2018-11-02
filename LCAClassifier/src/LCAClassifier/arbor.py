@@ -103,7 +103,7 @@ class ARBor(CRESTree):
             if "." in accession:
                 accession = accession[:accession.find(".")]
             
-            print "DEBUG %s" % accession
+            #print "DEBUG %s" % accession
             
             taxonomy = parts[1].replace("; ",";")
             if self.GGMode:            
@@ -156,7 +156,7 @@ class ARBor(CRESTree):
                         taxa[i]+=(" (Mitochondrion)")
                        
             else:
-                parent = self.cellOrg            
+                parent = self.cellOrg
             
                                           
             # Now go through taxa one by one again            
@@ -463,13 +463,13 @@ class ARBor(CRESTree):
                 name = name[:name.find(" (")]                        
         if name in self.ranks: # other tests incl. "ales" "aceae"
             return self.ranks[name]
-        elif name[-4:] == "ales":
+        elif self.isParent(node) and name[-4:] == "ales":
             return CRESTree.ORDER
-        elif name[-4:] == "ceae" and not name[-7:] == "phyceae":
+        elif self.isParent(node) and name[-4:] == "ceae" and not name[-7:] == "phyceae":
             return CRESTree.FAMILY
         else: 
-            return None        
-    
+            return None
+        
     def writeFasta(self, inFile, outFile, sintax=False):
         added = []    
         newFasta = open(outFile , 'w')
@@ -601,7 +601,7 @@ class ARBor(CRESTree):
                 while isInt(taxa[-i]) and len(taxa)>i:
                     i+=1 
                                        
-                if (spParts[0] != taxa[-i]):
+                if (not taxa[-i].startswith(spParts[0])):
                     print "DEBUG: discarding sp. name with wrong genus: %s, parent: %s" % (ncbi_name, taxa[-i])
                     return False
         
