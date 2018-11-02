@@ -102,7 +102,7 @@ class CRESTree:
     
     def isParent(self, node):
         node=self.verifyNode(node)
-        if self.clades:
+        if node.clades:
             return True
         else: return False
         
