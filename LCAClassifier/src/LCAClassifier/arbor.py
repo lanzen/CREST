@@ -198,7 +198,7 @@ class ARBor(CRESTree):
                     
                         node = self.getNode(taxa[i])
                         # Set new parent if parent matches
-                        print "DEBUG: Parent %s, node: %s" %(parent.name, node.name)
+                        #print "DEBUG: Parent %s, node: %s" %(parent.name, node.name)
                         taxa[i] += " (%s)" % parent.name
                 
                 if taxa[i] in self.nodeNames:
@@ -462,6 +462,7 @@ class ARBor(CRESTree):
             if not inBrackets in CRESTree.depths.values()+["superphylum","Chloroplast"+"Mitochondrion"]:
                 name = name[:name.find(" (")]                        
         if name in self.ranks: # other tests incl. "ales" "aceae"
+            #print "DEBUG: %s in rank file as %s" % (name, self.ranks[name])
             return self.ranks[name]
         elif self.isParent(node) and name[-4:] == "ales":
             return CRESTree.ORDER
