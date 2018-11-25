@@ -549,8 +549,7 @@ def main():
                       default=True,
                       help=("Deactivate minimum identity filter preventing "
                             "classification to higher ranks when a minimum "
-                            "rank-identity is not met (3% for species, 5% for "
-                            "genera, 10% for family"))
+                            "rank-identity is not met"))
 
     parser.add_option("-m", "--minabundance",
                       dest="mintaxonabundance",
