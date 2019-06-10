@@ -64,7 +64,7 @@ class AssignmentInfo:
                                    for i in range(self.dims)]
         
         if primary:
-            self.assignedAbundance = [self.totalAbundance[i] + otu.abundances[i] 
+            self.assignedAbundance = [self.assignedAbundance[i] + otu.abundances[i] 
                                    for i in range(self.dims)]
         
         for i in range(self.dims):                
@@ -422,7 +422,7 @@ class LCAClassifier():
             
     def writeAssignedCount(self, outFile, countType="totalAbundance", depths=CRESTree.depths):
         """
-        Writes all assignments, either direct trefileones (not including children), total ones (incl.), or
+        Writes all assignments, either direct assignments (not including children), total ones (incl.), or
         richness (no. of OTUs assigned)
         """        
         datasetheaders = "\t".join(ds for ds in self.datasets)       
@@ -773,7 +773,7 @@ def main():
         bi={}
         for line in biMap:
             taxon_name,weight = line[:-1].split("\t")
-            bi[taxon_name] = int(weight)
+            bi[taxon_name] = float(weight)
     
     if options.otus or options.biom or options.fastafile:
         lca = LCAClassifier(name = "classifier instance", tree = reftree,
