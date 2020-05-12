@@ -1,2 +1,2 @@
-python bootstrap.py
+python2 bootstrap.py
 bin/buildout
