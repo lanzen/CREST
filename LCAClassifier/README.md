@@ -130,7 +130,7 @@ For example, for a (compressed) alignment file named Dataset.xml.gz and no speci
 
 **Dataset_Tree.txt** shows the taxonomical composition in a simple space-indented tree (in plaintext format), each taxon annotated with the number of reads.
 
-**Dataset_Assignments.fasta** written when using option -a, this file gives all taxonomically annotated sequences in FASTA format. In the FASTA header, the original sequence name is first given, then the predicted taxonomic assignment from the root of the taxonomic tree to the best rank at which classification was possible (separated by semicolons). If the Minimum similarity filter prevented assignment at a higher level for this sequence, indicating it to represent a novel taxa, the last taxon is prefixed with the word "Unknown".
+**Dataset_Assignments.fasta** this file gives all taxonomically annotated sequences in FASTA format. In the FASTA header, the original sequence name is first given, then the predicted taxonomic assignment from the root of the taxonomic tree to the best rank at which classification was possible (separated by semicolons). If the Minimum similarity filter prevented assignment at a higher level for this sequence, indicating it to represent a novel taxa, the last taxon is prefixed with the word "Unknown".
 
 **Dataset_Assignments.tsv** written by using option -p, this file lists all sequence names and their assignments in a simpe semicolon-separated format. If the Minimum similarity filter prevented assignment at a higher level for this sequence, indicating it to represent a novel taxa, the last taxon is prefixed with the word "Unknown".
 Common / dataset-specific output files
@@ -144,6 +144,8 @@ Common / dataset-specific output files
 **<Sequence-input-file-name> (if given) +"_Assigned.fasta"** sequences with assignments added in FASTA header. Written with option -i
 
 Other options
+
+-a: BI-weights-file calculates biotic index using the submitted file specifying the index weights (e.g. microgAMBI for 16S)
 
 -h: shows a help message listing all options
 
