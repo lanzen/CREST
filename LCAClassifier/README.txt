@@ -25,7 +25,7 @@ Installation procedure. It also requires Python-Dev.
 
 Download the latest stable distribution and expand it using tar:
 
-`tar -xvzf LCAClassifier3.0.7.tar.gz`
+`tar -xvzf LCAClassifierV3.2.0.tar.gz`
 
 Or download the development version:
 
