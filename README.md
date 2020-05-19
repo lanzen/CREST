@@ -8,13 +8,15 @@ Lanzén A , Jørgensen SL, Huson D, Gorfer M, Grindhaug SH, Jonassen I, Øvreås
 
 ## Classification databases supported
 
-SilvaMod was derived by manual curation of the SILVA nr SSU Ref. It supports SSU sequences from bacteria and archaea (16S) as well as eukaryotes (18S), with a high level of manual curation and defined environmental clades. Release supported: Silva nr SSU Ref v128 (Sep 2016)
+SilvaMod was derived by manual curation of the [SILVA nr SSU Ref v128](https://www.arb-silva.de/documentation/release-128/). It supports SSU sequences from bacteria and archaea (16S) as well as eukaryotes (18S), with a high level of manual curation and defined environmental clades. Release supported: Silva nr SSU Ref v128 (Sep 2016)
 
-Greengenes is an alternative reference database for classification of prokaryotic 16S, curated and maintained by The Greengenes Database Consortium. Release supported: May 2013
+[Greengenes](http://greengenes.secondgenome.com) is an alternative reference database for classification of prokaryotic 16S, curated and maintained by The Greengenes Database Consortium. Release supported: May 2013
 
-Unite seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v7.2, 2017-10-10
+[Unite](http://unite.ut.ee/UNITE) seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v7.2, 2017-10-10
 
 amoA is a reference database for phylogenetic (not taxonomic) classification of ammonia monooxidase A (amoA) amplicons developed by <a href="https://www.nature.com/articles/s41467-018-03861-1">Alves et al. (2018)</a>.
+
+[BOLD](https://www.boldsystems.org)** Barcode of Life Datasystems (BOLD) is a community resource including a reference database for COI (Mitochondrial Cytochrome Oxidase I) metabarcoding and barcoding. The partial version available here is from 2018 and has been adapted and curated for CREST, including standardizing rank structure and taxon names using the NCBI Taxonomy.
 
 To update your database files, new versions can be downloaded separately (wihtout the need to install a new version of CREST), from http://services.cbu.uib.no/supplementary/crest
 
