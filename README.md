@@ -16,7 +16,7 @@ SilvaMod was derived by manual curation of the [SILVA nr SSU Ref v128](https://w
 
 amoA is a reference database for phylogenetic (not taxonomic) classification of ammonia monooxidase A (amoA) amplicons developed by <a href="https://www.nature.com/articles/s41467-018-03861-1">Alves et al. (2018)</a>.
 
-[BOLD](https://www.boldsystems.org)** Barcode of Life Datasystems (BOLD) is a community resource including a reference database for COI (Mitochondrial Cytochrome Oxidase I) metabarcoding and barcoding. The partial version available here is from 2018 and has been adapted and curated for CREST, including standardizing rank structure and taxon names using the NCBI Taxonomy.
+[BOLD](https://www.boldsystems.org) Barcode of Life Datasystems (BOLD) is a community resource including a reference database for COI (Mitochondrial Cytochrome Oxidase I) metabarcoding and barcoding. The partial version available here is from 2018 and has been adapted and curated for CREST, including standardizing rank structure and taxon names using the NCBI Taxonomy.
 
 To update your database files, new versions can be downloaded separately (wihtout the need to install a new version of CREST), from http://services.cbu.uib.no/supplementary/crest
 
