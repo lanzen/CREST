@@ -24,7 +24,7 @@ To update your database files, new versions can be downloaded separately (wihtou
 
 LCAClassifier uses pairwise alignments to a reference database of marker genes (such as SSU rRNA) as input. Alignment files must be in XML format and produced by the NCBI blastall suit. For best performance, we recommend the Megablast algorithm. Megablast is both implemented as a separate program in NCBI's legacy Blastall suite, that can be downloaded from ftp://ftp.ncbi.nlm.nih.gov/blast/executables/release/LATEST/; or as part of the _blastn_ program of the newer BLAST+ implementation, available at ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/. The later implementation is slightly faster.
 
-LCAClassifier also requires python (v.2.7 or higher), included as part of recent MacOSX and Linux distributions.
+LCAClassifier also requires python (v.2.7 or higher), included as part of recent MacOSX and Linux distributions, as well as setuptools.
 Installation procedure. It also requires Python-Dev.
 
 Download the latest stable distribution and expand it using tar:
