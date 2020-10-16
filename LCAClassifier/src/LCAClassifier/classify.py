@@ -370,7 +370,7 @@ class LCAClassifier():
         print "...done"
 
     def setBitscoreRange(self, percent):
-        self.bsr = 1 - float(percent) / 100
+        self.bsr = 1 - percent / 100
 
     def setMinScore(self, minScore):
         self.ms = minScore
@@ -531,11 +531,11 @@ def main():
 
     parser.add_option("-r", "--range",
                       dest="bitScoreRange",
-                      type="int",
-                      default=2,
-                      help=("Bitscore-range (the range of blast hits to find "
-                            "LCA of, given in percent drop from highest "
-                            "score; default = 2)"))
+                      type="float",
+                      default=2.0,
+                      help=("Bitscore-range (in percent, the range of blast hits to find "
+                            "LCA of - percent drop from highest to include"
+                            "score; default = 2.0)"))
 
     parser.add_option("-s", "--minscore",
                       dest="minScore",
