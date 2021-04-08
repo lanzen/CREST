@@ -478,7 +478,7 @@ class ARBor(CRESTree):
         for record in Bio.SeqIO.parse(open(inFile), "fasta"):            
         
             headerItems = record.description.split()
-            acc = headerItems[-1]
+            acc = headerItems[0]
             if "." in acc:
                 acc = acc[:acc.find(".")]
             
