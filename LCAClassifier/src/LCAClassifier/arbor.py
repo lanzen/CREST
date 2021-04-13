@@ -180,6 +180,7 @@ class ARBor(CRESTree):
                         taxa[i] = taxa[i][3:]
                     elif taxa[i][1]==":":
                         taxa[i] = taxa[i][2:]
+#                        print accession,dsym,taxa[i]
                                                                  
                 
                 #Fix parent of self ambigousity error
