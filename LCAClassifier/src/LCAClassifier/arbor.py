@@ -13,7 +13,7 @@ from posix import access
 sfLimits = {CRESTree.SUBSPECIES: 1.0, # 97
             CRESTree.SPECIES: .99, # 97
             CRESTree.GENUS: .97, # 95
-            ar            CRESTree.FAMILY: .95, # 90
+            CRESTree.FAMILY: .95, # 90
             CRESTree.ORDER: .90, # 85
             CRESTree.CLASS: .85, # 80
             CRESTree.PHYLUM: .80,   # 75
