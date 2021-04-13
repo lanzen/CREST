@@ -82,7 +82,7 @@ def main():
         
     print "...Initiating ARB Tree and reading rank lists"
     st = ARBor(name=options.name, rearrangeOrganelles=options.euk_rearrange,
-               GGRankInfo=options.GGRankInfo, NCBIColumn = ncbi_column)
+               GGRankInfo=options.GGRankInfo, NCBIColumn = options.ncbi_column)
         
     i=1
     for nds in args:
