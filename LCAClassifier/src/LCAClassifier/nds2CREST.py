@@ -57,6 +57,11 @@ def main():
                       action="store_true",dest="sintax_out",
                       default=False,
                       help="Write SINTAX formatted FASTA (extra)")
+
+    parser.add_option("-n", "--no_ncbi",
+                      action="store_false",dest="ncbi_column",
+                      default=True,
+                      help="Ignore NCBI name (two columns only in NDS)")
                       
     
     
@@ -77,7 +82,7 @@ def main():
         
     print "...Initiating ARB Tree and reading rank lists"
     st = ARBor(name=options.name, rearrangeOrganelles=options.euk_rearrange,
-               GGRankInfo=options.GGRankInfo )
+               GGRankInfo=options.GGRankInfo, NCBIColumn = ncbi_column)
         
     i=1
     for nds in args:

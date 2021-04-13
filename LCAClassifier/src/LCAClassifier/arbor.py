@@ -13,7 +13,7 @@ from posix import access
 sfLimits = {CRESTree.SUBSPECIES: 1.0, # 97
             CRESTree.SPECIES: .99, # 97
             CRESTree.GENUS: .97, # 95
-            CRESTree.FAMILY: .95, # 90
+            ar            CRESTree.FAMILY: .95, # 90
             CRESTree.ORDER: .90, # 85
             CRESTree.CLASS: .85, # 80
             CRESTree.PHYLUM: .80,   # 75
@@ -48,7 +48,7 @@ class ARBor(CRESTree):
                       "environmental","enrichment",
                        "clone", "Unknown", "sp.", "spp.", "bacteri"]
     
-    def __init__(self, name=None, rearrangeOrganelles=True, GGRankInfo=False):
+    def __init__(self, name=None, rearrangeOrganelles=True, GGRankInfo=False, NCBIColumn=True):
         CRESTree.__init__(self)        
         
         self.rearrangeOrganelles = rearrangeOrganelles
@@ -97,7 +97,7 @@ class ARBor(CRESTree):
 
         for line in ndsFile:            
             
-            parts = line.split("\t")
+            parts = line[:-1].split("\t")
             
             accession = parts[0]
             if "." in accession:
@@ -107,7 +107,7 @@ class ARBor(CRESTree):
             
             taxonomy = parts[1].replace("; ",";")
             if self.GGMode:            
-                taxa = re.split('[/;]', taxonomy)
+                taxa = re.split('[/;,]', taxonomy)
             else:
                 taxa = re.split('[_/;]', taxonomy)
             
@@ -115,11 +115,9 @@ class ARBor(CRESTree):
             while taxa[0].lower()=="root" or taxa[0].lower=="cellular organisms":
                 taxa = taxa[1:]
             
-            # Deal with NCBI name / species name
-            ncbi_name = parts[2].replace("\n", "")
-            
-            if self._useNameInTaxonomy(taxa=taxa, ncbi_name=ncbi_name):
-                taxa.append(ncbi_name)
+            # Deal with NCBI name / species name            
+            if self.NCBIColumn and self._useNameInTaxonomy(taxa=taxa, ncbi_name=parts[2]):
+                taxa.append(parts[2])
             else:
                 while taxa and not self._useNameInTaxonomy(taxa=taxa):
                     taxa.pop()
@@ -175,9 +173,12 @@ class ARBor(CRESTree):
                 
                 #Remove explicit rank from greengenes node since not useful
                 dsym = ""
-                if self.GGMode and len(taxa[i])>3 and taxa[i][1:3]=="__":
-                    dsym = taxa[i][0:1]                    
-                    taxa[i] = taxa[i][3:]
+                if self.GGMode and len(taxa[i])>3:                    
+                    dsym = taxa[i][0:1]
+                    if taxa[i][1:3]=="__": # Original GG
+                        taxa[i] = taxa[i][3:]
+                    elif taxa[i][1]==":":
+                        taxa[i] = taxa[i][2:]
                                                                  
                 
                 #Fix parent of self ambigousity error
