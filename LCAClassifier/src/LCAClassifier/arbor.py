@@ -53,6 +53,7 @@ class ARBor(CRESTree):
         
         self.rearrangeOrganelles = rearrangeOrganelles
         self.GGMode = GGRankInfo
+        self.NCBIColumn = NCBIColumn
         
         self.nodeIDs[1] = self.root        
         self.tree.root.nodeID = self.lastID = 1
