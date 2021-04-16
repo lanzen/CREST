@@ -24,7 +24,9 @@ sfLimits = {CRESTree.SUBSPECIES: 1.0, # 97
             CRESTree.ROOT: 0
             }
 
-ggCodes = {"d": CRESTree.DOMAIN,
+ggCodes = {"m": CRESTree.META,
+           "d": CRESTree.DOMAIN,
+           "j": CRESTree.SUPERKINGDOM,
            "k": CRESTree.KINGDOM,
            "p": CRESTree.PHYLUM,
            "c": CRESTree.CLASS,
@@ -89,7 +91,7 @@ class ARBor(CRESTree):
         NCBI Tax."""
         
         if self.rearrangeOrganelles:
-            plastidNames = ["chloroplast","Chloroplast","Plastid"]
+            plastidNames = ["chloroplast","Chloroplast","Plastid","plastid","apicoplast"]
             organelleFind = dict((k,self.plastid) for k in plastidNames)
             for k in ["Mitochondrion","mitochondrion","mitochondria","Mitochondria"]:
                 organelleFind[k] = self.mito
@@ -141,7 +143,9 @@ class ARBor(CRESTree):
             if self.rearrangeOrganelles:
                 parent = self.mainGenome
                 for k in organelleFind:
-                    if ((len(parts) > 3) and k in parts[3]) or k in taxonomy:
+                    # Convention is to put organelles in paranthesis for PR2 and as a complete taxon in parts[3] for SilvaMod
+                    kp = "("+k+")"
+                    if ((len(parts) > 3) and k in parts[3]) or kp in taxonomy:
                         parent = organelleFind[k]
                         print "DEBUG: %s : %s" % (taxa, organelleFind[k])
                     if k in taxa:            
@@ -180,7 +184,7 @@ class ARBor(CRESTree):
                         taxa[i] = taxa[i][3:]
                     elif taxa[i][1]==":":
                         taxa[i] = taxa[i][2:]
-#                        print accession,dsym,taxa[i]
+#                        print (accession,dsym,taxa[i])
                                                                  
                 
                 #Fix parent of self ambigousity error
@@ -594,7 +598,8 @@ class ARBor(CRESTree):
             
             
             spParts = ncbi_name.split(" ")
-            if taxa[-1] in ["Eukaryota", "Chloroplast", "Mitochondrion", "Mitochondria"]:
+            if taxa[-1] in ["Eukaryota", "Chloroplast", "Mitochondrion", "Mitochondria", "plastid",
+                            "apicoplast", "chromatophore", "nucleomorph" ]:
                 # Silva v128 organelle
                 for nsKey in ARBor.nonSpeciesKeys:
                     if nsKey in ncbi_name:
