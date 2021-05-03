@@ -1,5 +1,5 @@
 '''
-Converts a five column NDS file into four readable by nds2CREST.py by adding
+Converts a four column NDS file into four readable by nds2CREST.py by adding
 extra taxa from the last coloumn into the second when agreeing with the last 
 child
 
@@ -19,9 +19,14 @@ if __name__ == "__main__":
         silva = items[1]
         name = items[2]
         ncbi = items[3]
+
+        #silvamod138
+        bchloro = "Bacteria_Bacteria (superkingdom)/Terrabacteria/Cyanobacteria/Cyanobacteriia/Chloroplast"
+        #silvamod128:
+        #"Bacteria_Bacteria (superkingdom)/Terrabacteria_Cyanobacteria/Oxyphotobacteria/Chloroplast"
         
-        bchloro = "Bacteria_Bacteria (superkingdom)/Terrabacteria_Cyanobacteria/Oxyphotobacteria/Chloroplast"
         silva = silva.replace(bchloro, "Eukaryota/Chloroplast")
+
         bmit = "Bacteria_Bacteria (superkingdom)/Proteobacteria (superphylum)_Proteobacteria/Alphaproteobacteria/Rickettsiales/Mitochondria"
         silva = silva.replace(bmit, "Eukaryota/Mitochondria")
         
@@ -29,6 +34,7 @@ if __name__ == "__main__":
             ncbi = ncbi[:-1]
         silvaTaxa = re.split('[_/;]', silva)
         ncbiTaxa = re.split('[_/;]', ncbi)
+
         if silvaTaxa[-1] in ncbiTaxa:
             corpos = ncbiTaxa.index(silvaTaxa[-1])
             if ((corpos +1) < len(ncbiTaxa)) and len(silvaTaxa) < len(ncbiTaxa):       

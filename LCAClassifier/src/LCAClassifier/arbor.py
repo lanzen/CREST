@@ -50,10 +50,9 @@ class ARBor(CRESTree):
                       "environmental","enrichment",
                        "clone", "Unknown", "sp.", "spp.", "bacteri"]
     
-    def __init__(self, name=None, rearrangeOrganelles=True, GGRankInfo=False, NCBIColumn=True):
+    def __init__(self, name=None, GGRankInfo=False, NCBIColumn=True):
         CRESTree.__init__(self)        
         
-        self.rearrangeOrganelles = rearrangeOrganelles
         self.GGMode = GGRankInfo
         self.NCBIColumn = NCBIColumn
         
@@ -67,15 +66,12 @@ class ARBor(CRESTree):
         # Node name as key, depth as value
         self.ranks = {} 
         
-        # Basic structure 
-        if self.rearrangeOrganelles:
-            self.mainGenome = self.addNode(nodename="Main genome", parent=self.root)
-            #self.organelles = self.addNode(nodename="Organelle", parent=self.root)
-            self.plastid = self.addNode(nodename="Chloroplast", parent = self.root)
-            self.mito = self.addNode(nodename="Mitochondria", parent = self.root)
-            
-        else:        
-            self.cellOrg = self.addNode(nodename="Cellular organisms", parent=self.root)
+        # To speed up SilvaMod parse and allow fixing of organelle taxonomy
+        self.mainGenome = self.addNode(nodename="Main genome", parent=self.root)            
+        self.plastid = self.addNode(nodename="Chloroplast", parent = self.root)
+        self.mito = self.addNode(nodename="Mitochondria", parent = self.root)
+        
+        
 
     def addNode(self, nodename, parent, assignmentMin=0):
         newNode =  CRESTree.addNode(self, nodename, parent, assignmentMin=assignmentMin)
@@ -88,13 +84,8 @@ class ARBor(CRESTree):
 
     def parseSilvaNDS(self, filename):
         """Parses an NDS Export file from Silva with accession, silva tax. and
-        NCBI Tax."""
+        NCBI Tax."""       
         
-        if self.rearrangeOrganelles:
-            plastidNames = ["chloroplast","Chloroplast","Plastid","plastid","apicoplast"]
-            organelleFind = dict((k,self.plastid) for k in plastidNames)
-            for k in ["Mitochondrion","mitochondrion","mitochondria","Mitochondria"]:
-                organelleFind[k] = self.mito
         
         ndsFile = open(filename, 'r')
 
@@ -134,35 +125,28 @@ class ARBor(CRESTree):
                 taxa.pop(taxa.index(r))
 
                         
-            # Deal with organells structure
-            # (the most sensible is to include an organelle node 
-            # named "chloroplast" or "mitochondria" anywherein the taxonomy
-            # as in Silva, but the possibility of an extra fourth column
-            # kept for backwards compability)
+            # Deal with organell structure if present to avoid messy non-unique names 
+            # e.g. "Zea Mays (Zea (Eukaryota (Chloroplast)))" or worse
             
-            if self.rearrangeOrganelles:
-                parent = self.mainGenome
-                for k in organelleFind:
-                    # Convention is to put organelles in paranthesis for PR2 and as a complete taxon in parts[3] for SilvaMod
-                    kp = "("+k+")"
-                    if ((len(parts) > 3) and k in parts[3]) or kp in taxonomy:
-                        parent = organelleFind[k]
-                        print "DEBUG: %s : %s" % (taxa, organelleFind[k])
-                    if k in taxa:            
-                        taxa.pop(taxa.index(k))   
-                        
+            if taxa[0] in ["Chloroplast","Mitochondria"]:
                 # Fix organelle names
-                for i in range(0,len(taxa)):
-                    if parent == self.plastid:
-                        taxa[i]+=(" (Chloroplast)")
-                    elif parent == self.mito:
-                        taxa[i]+=(" (Mitochondrion)")
-                       
-            else:
-                parent = self.cellOrg
-            
+                for i in range(1,len(taxa)):                    
+                    taxa[i]+=(" (%s)" %taxa[0])
+                    
+            #Fix Silva mistake where genera occur inside themselves
+            for i in range(CRESTree.GENUS,len(taxa)):
+                if taxa[i] == taxa[i-1]:
+                    print "DEBUG: -----------"
+                    print "DEBUG", line[:-1]
+                    print "DEBUG: same name as parent - removing %s" % taxa[i]
+                    taxa.pop(i)
+                    print "DEBUG: -----------"
+                    break
+
+
                                           
-            # Now go through taxa one by one again            
+            # Now go through taxa one by one again
+            parent = self.root
             for i in range(0,len(taxa)):
                 depth = self.getDepth(parent)+1
                 
@@ -184,29 +168,18 @@ class ARBor(CRESTree):
                         taxa[i] = taxa[i][3:]
                     elif taxa[i][1]==":":
                         taxa[i] = taxa[i][2:]
-#                        print (accession,dsym,taxa[i])
-                                                                 
+#                        print (accession,dsym,taxa[i])                                                                 
                 
-                #Fix parent of self ambigousity error
+                # Same name as parent
                 if taxa[i] == parent.name or taxa[i].startswith("Unknown "):
                     taxa[i] = "%s (%s)" % (parent.name, rank)
-                    print "DEBUG: -----------"
                     print "DEBUG", line[:-1]
                     print "DEBUG: same name as parent - adding %s" %taxa[i]                    
-                    print "DEBUG", taxa
                     print "DEBUG: -----------"
                 
-                #Fix incertae sedis only issues (still in 106)
-                if taxa[i].lower() == "incertae sedis" or taxa[i] == "Incertae_sedis":
-                    taxa[i] = "%s incertae sedis" % parent.name                
-                
-                
-                while (taxa[i] in self.nodeNames) and self.getParent(self.getNode(taxa[i])) is not parent:                     
-                    
-                        node = self.getNode(taxa[i])
-                        # Set new parent if parent matches
-                        #print "DEBUG: Parent %s, node: %s" %(parent.name, node.name)
-                        taxa[i] += " (%s)" % parent.name
+                while (taxa[i] in self.nodeNames) and self.getParent(self.getNode(taxa[i])) is not parent:                                        
+                    # Conflicting parent -> add parent name in parantheses
+                    taxa[i] += " (%s)" % parent.name
                 
                 if taxa[i] in self.nodeNames:
                     parent = self.getNode(taxa[i])
@@ -221,10 +194,11 @@ class ARBor(CRESTree):
             if not accession in self.accessions:
                 self.accessions[accession] = parent
             else:
+                pass
                 #self.rejected += accession
-                sys.stderr.write("Warning: Accession %s occurs more than once!\n" % accession)
+                #sys.stderr.write("Warning: Accession %s occurs more than once!\n" % accession)
                 
-        ndsFile.close()    
+        ndsFile.close()
 
     def processChangesMetadata(self, changeFile):
         """Process metadata update in semicolon-sep format"""
@@ -323,22 +297,14 @@ class ARBor(CRESTree):
         # child node is deeper or shallower than it should be. Add or remove 
         # Parents. Remember parents of deleted for later reassignment of accessions
         
-        parentsToDeleted = {} # name as key, parent node as value
-        #print "DEBUG: Root=",self.root
+        parentsToDeleted = {} # name as key, parent node as value        
         delQ = Queue.Queue()
         delQOrganelle = Queue.Queue()
-        if self.rearrangeOrganelles:
-            delQ.put(self.mainGenome)
-            delQOrganelle.put(self.mito)
-            delQOrganelle.put(self.plastid)
-        else: 
-            for c in self.tree.root.clades:
-                delQ.put(c)
-        while not delQ.empty() or not delQOrganelle.empty():
-            if not delQ.empty(): 
-                current = delQ.get()
-            else:
-                current = delQOrganelle.get()            
+        delQ.put(self.mainGenome)
+        delQOrganelle.put(self.mito)
+        delQOrganelle.put(self.plastid)
+        while not delQ.empty():
+            current = delQ.get()
             
             #print "DEBUG:",current
             properRank = self._getProperRank(current)
@@ -593,7 +559,7 @@ class ARBor(CRESTree):
         i=1
         if ncbi_name:
             if not " " in ncbi_name:
-                print "DEBUG: discarding incomplete sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
+                #print "DEBUG: discarding incomplete sp. name: %s, parent: %s" % (ncbi_name, taxa[-1])
                 return False
             
             
@@ -611,7 +577,7 @@ class ARBor(CRESTree):
                     i+=1 
                                        
                 if (not taxa[-i].startswith(spParts[0])):
-                    print "DEBUG: discarding sp. name with wrong genus: %s, parent: %s" % (ncbi_name, taxa[-i])
+                    #print "DEBUG: discarding sp. name with wrong genus: %s, parent: %s" % (ncbi_name, taxa[-i])
                     return False
         
             name = ncbi_name        

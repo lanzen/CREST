@@ -41,12 +41,8 @@ def main():
     parser.add_option("-g", "--greengenes_ranks",
                       action="store_true",dest="GGRankInfo",
                       default=False,
-                      help="Greengenes style explicit rank info in NDS files")
+                      help="Greengenes style explicit rank info in NDS files")    
     
-    parser.add_option("-p", "--nucleus_only",
-                      action = "store_false", dest="euk_rearrange",
-                      default=True,                    
-                      help="Do not rearrange eukaryotic 16S (plastids / mitochondria) as separate domains")       
     
     parser.add_option("-m", "--megan",
                       action="store_true",dest="megan_out",
@@ -81,8 +77,7 @@ def main():
           
         
     print "...Initiating ARB Tree and reading rank lists"
-    st = ARBor(name=options.name, rearrangeOrganelles=options.euk_rearrange,
-               GGRankInfo=options.GGRankInfo, NCBIColumn = options.ncbi_column)
+    st = ARBor(name=options.name, GGRankInfo=options.GGRankInfo, NCBIColumn = options.ncbi_column)
         
     i=1
     for nds in args:
