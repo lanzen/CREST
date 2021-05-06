@@ -133,14 +133,14 @@ class ARBor(CRESTree):
                 for i in range(1,len(taxa)):                    
                     taxa[i]+=(" (%s)" %taxa[0])
                     
-            #Fix Silva mistake where genera occur inside themselves
+            #Fix Silva mistake where genera occur inside themselves or PR2 spp
             for i in range(CRESTree.GENUS,len(taxa)):
                 if taxa[i] == taxa[i-1]:
-                    print "DEBUG: -----------"
-                    print "DEBUG", line[:-1]
-                    print "DEBUG: same name as parent - removing %s" % taxa[i]
+                    #print "DEBUG: -----------"
+                    #print "DEBUG", line[:-1]
+                    #print "DEBUG: same name as parent - removing %s" % taxa[i]
                     taxa.pop(i)
-                    print "DEBUG: -----------"
+                    #print "DEBUG: -----------"
                     break
 
 
@@ -308,27 +308,34 @@ class ARBor(CRESTree):
             
             #print "DEBUG:",current
             properRank = self._getProperRank(current)
-             
+            
+            
             while properRank and self.getDepth(current) > properRank:
                 tp = [str(n) for n in self.getPath(current)] #DEBUG
-                print "DEBUG: Too low: %s" % tp 
+                print("DEBUG: Too low: %s" % tp )
                 parent = self.getParent(current)
-                grandparent = self.getParent(parent)                    
-                self.deleteNode(parent, moveUpChildren=True)
-                parentsToDeleted[parent.name] = grandparent
-                if properRank>=max(sfLimits):
-                    self.assignmentMin[current.name] = sfLimits[max(sfLimits)]
-                elif properRank<min(sfLimits):
-                    self.assignmentMin[current.name] = 0
+                parentRank = self._getProperRank(parent)
+                #print("DEBUG: Parent rank: %s" %parentRank)
+                if (not parentRank):
+                    grandparent = self.getParent(parent)
+                    self.deleteNode(parent, moveUpChildren=True)
+                    parentsToDeleted[parent.name] = grandparent
+                    if properRank>=max(sfLimits):
+                        self.assignmentMin[current.name] = sfLimits[max(sfLimits)]
+                    elif properRank<min(sfLimits):
+                        self.assignmentMin[current.name] = 0
+                    else:
+                        self.assignmentMin[current.name] = sfLimits[properRank]
+                    
+                    tp = [str(n) for n in self.getPath(current)] #DEBUG
+                    print("DEBUG: --> %s" % tp)
                 else:
-                    self.assignmentMin[current.name] = sfLimits[properRank]
-                
-                tp = [str(n) for n in self.getPath(current)] #DEBUG
-                print "DEBUG: --> %s" % tp
+                    print("DEBUG: leaving")
+                    break
             
             while properRank and self.getDepth(current) < properRank:
                 tp = [str(n) for n in self.getPath(current)] #DEBUG
-                print "DEBUG: Too high: %s" % tp
+                print("DEBUG: Too high: %s" % tp)
                 
                 parent = self.getParent(current)
                 actualRank = self.getDepth(current)
@@ -364,7 +371,7 @@ class ARBor(CRESTree):
                 self.assignmentMin[current.name] = sfLimits[properRank]
                 
                 tp = [str(n) for n in self.getPath(current)] #DEBUG                
-                print "DEBUG: --> %s" % tp      
+                print("DEBUG: --> %s" % tp)
                     
             for child in self.getImmediateChildren(current):
                 delQ.put(child) 
@@ -441,6 +448,8 @@ class ARBor(CRESTree):
             return CRESTree.ORDER
         elif self.isParent(node) and name[-4:] == "ceae" and not name[-7:] == "phyceae":
             return CRESTree.FAMILY
+        elif self.isParent(node) and name[-3:] == "ota":
+            return CRESTree.PHYLUM
         else: 
             return None
         
