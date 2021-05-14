@@ -112,14 +112,14 @@ class ARBor(CRESTree):
             # Deal with NCBI name / species name            
             if self.NCBIColumn and self._useNameInTaxonomy(taxa=taxa, ncbi_name=parts[2]):
                 taxa.append(parts[2])
-            else:
-                while taxa and not self._useNameInTaxonomy(taxa=taxa):
-                    taxa.pop()
+            #else:
+             #   while taxa and not self._useNameInTaxonomy(taxa=taxa):
+              #      taxa.pop()
                     
             # Remove all empty or only numerical taxa
             remove = []
             for i in range(0,len(taxa)):
-                if len(taxa[i])== 0 or (len(re.findall('[0-9]', taxa[i])) == len(taxa[i])):
+                if len(taxa[i])== 0 or (len(re.findall('[0-9]', taxa[i])) == len(taxa[i])) or (taxa[i] in ARBor.nonSpeciesKeys):
                     remove.append(taxa[i])
             for r in remove:
                 taxa.pop(taxa.index(r))
