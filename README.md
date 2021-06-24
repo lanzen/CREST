@@ -8,9 +8,7 @@ Lanzén A , Jørgensen SL, Huson D, Gorfer M, Grindhaug SH, Jonassen I, Øvreås
 
 ## Classification databases supported
 
-SilvaMod was derived by manual curation of the [SILVA nr SSU Ref v128](https://www.arb-silva.de/documentation/release-128/). It supports SSU sequences from bacteria and archaea (16S) as well as eukaryotes (18S), with a high level of manual curation and defined environmental clades. Release supported: Silva nr SSU Ref v128 (Sep 2016)
-
-[Greengenes](http://greengenes.secondgenome.com) is an alternative reference database for classification of prokaryotic 16S, curated and maintained by The Greengenes Database Consortium. Release supported: May 2013
+SilvaModPR2 was derived by manual curation of the [SILVA nr SSU Ref](https://www.arb-silva.de) for Bacteria, Archaea, Metazoa and Fungi. For other eukaryotes (protists), the [PR2 database](https://pr2-database.org/) was used. SilvaModPR2 supports SSU sequences from bacteria and archaea (16S) as well as eukaryotes (18S), with a high level of manual curation and defined environmental clades. Releases supported: Silva nr SSU Ref v138 (Aug 2020) and PR2 v 4.13 (Mar 2021).
 
 [Unite](http://unite.ut.ee/UNITE) seeks to maintain the cleanest possible copy of all public fungal ITS sequences. Third-party sequence annotation is supported, and everyone with the expertise to improve the sequence data and their annotation/metadata are welcome to participate in the annotation effort. Release supported: v7.2, 2017-10-10
 
