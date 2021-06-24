@@ -526,7 +526,7 @@ def main():
     parser.add_option("-d", "--dbname",
                       dest="dbname",
                       type="string",
-                      default="silvamod128",
+                      default="silvamod138pr2",
                       help="Taxonomy and reference database to be used (defaut = silvamod128)")
 
     parser.add_option("-r", "--range",
