@@ -1,3 +1,9 @@
+*13 July 2021:*
+
+***[CREST4 has been released, and with this release, the CREST repository has moved to github.com/xapple/crest4](https://github.com/xapple/crest4)***
+
+
+
 ![Logo](http://services.cbu.uib.no/supplementary/crest/img/CREST_s.png)
 
 **CREST - Classification Resources for Environmnetal Sequence Tags**, is a collection of software and databases for taxonomic classification of environmental marker genes from sequencing-based community profiling studies (also known as "meta-" + "-genomics", " -transcriptomics", "-barcoding"; "taxonomic-" or "phylogenetic-" profiling)). The program LCAClassifier is used used for classification of sequences aligned to the reference databases provided.
