@@ -12,7 +12,7 @@ for line in tax:
     sp = tp[-1]
     parents = tp[:-1]
 
-    print "%s\t%s\t%s" % (acc, "/".join(parents), sp)
+    print ("%s\t%s\t%s" % (acc, "/".join(parents), sp))
 
 tax.close()
     

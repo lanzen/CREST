@@ -140,11 +140,11 @@ class ClassificationTree(CRESTree):
         self.noHits = self.addNode("No hits", self.root)        
         
         # Fill nodeID dict
-        print "Making node list..."
+        print("Making node list...")
         allNodes = self._getAllChildren(self.root)
         for c in allNodes:
             self.nodeIDs[c.name] = c
-        print "..done"
+        print("..done")
         
         # the two accession number patterns that exist
         accPatterns = [re.compile("\D\D\d\d\d\d\d\d\Z"), 
@@ -153,7 +153,7 @@ class ClassificationTree(CRESTree):
                        re.compile("\D\D\D\D\d\d\d\d\d\d\d\d\Z")]
         
         # Read nodes from .map file (id\t name\t cutoff)
-        print "Reading .map file"
+        print("Reading .map file")
         theMap = open(mapfile, "r")
                 
         for line in theMap:
@@ -185,7 +185,7 @@ class ClassificationTree(CRESTree):
                                  (nodeID,name))                
                                 
         theMap.close()
-        print "..done"
+        print("..done")
         
     def pruneUnassigned(self, node):
         """
@@ -280,7 +280,7 @@ class LCAClassifier():
         given if the dataset name comes from a BLAST file rather than OTU table
         (abundance set to 1 and only in the unique dataset i.e. reads rather than OTUs)
         """
-        print "Processing alignments and assigning query sequences..."
+        print("Processing alignments and assigning query sequences...")
         for record in records:
             qName = record.query.split(" ")[0]
             
@@ -331,7 +331,7 @@ class LCAClassifier():
                     self.assignOTU(otu, self.tree.noHits)
                     continue
                                  
-                # Take a look at similarity, print info if verbose and
+                # Take a look at similarity, print(info if verbose and
                 # kick down if filter
                 hsp_sim = (float(best_hsp.identities) /
                            float(best_hsp.align_length))
@@ -345,9 +345,9 @@ class LCAClassifier():
                        and hsp_sim < self.tree.assignmentMin[lcaNode.name] and 
                        lcaNode is not self.tree.root):
                     if verbose:
-                        print ("OTU %s cannot be assigned to %s (similarity=%s / %s)\n" %
+                        print("OTU %s cannot be assigned to %s (similarity=%s / %s)\n" %
                                    (qName, lcaNode.name, hsp_sim, 
-                                    self.tree.assignmentMin[lcaNode.name]))                   
+                                    self.tree.assignmentMin[lcaNode.name])) 
                     parent = self.tree.getParent(lcaNode)
                     if hsp_sim < self.tree.assignmentMin[parent.name] or noUnknowns:
                         lcaNode = parent
@@ -367,7 +367,7 @@ class LCAClassifier():
                     self.assignOTU(otu, self.tree.noHits)
                 else:
                     self.assignOTU(otu, lcaNode, verbose=verbose)
-        print "...done"
+        print("...done")
 
     def setBitscoreRange(self, percent):
         self.bsr = 1 - percent / 100

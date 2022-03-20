@@ -43,7 +43,7 @@ def main():
                       default=False,
                       help="Greengenes style explicit rank info in NDS files")    
     
-    
+         
     parser.add_option("-m", "--megan",
                       action="store_true",dest="megan_out",
                       default=False,
@@ -76,7 +76,7 @@ def main():
         parser.error("Option --greengenes_ranks is incompatible with supplying a separate rank file")        
           
         
-    print "...Initiating ARB Tree and reading rank lists"
+    print("...Initiating ARB Tree and reading rank lists")
     st = ARBor(name=options.name, GGRankInfo=options.GGRankInfo, NCBIColumn = options.ncbi_column)
         
     i=1
@@ -85,14 +85,14 @@ def main():
         i += 1
         
     if options.changeFile:
-        print "...Making manual changes"        
+        print("...Making manual changes")
         st.processChangesMetadata(options.changeFile)
             
     if options.rankFile or options.GGRankInfo:
-        print "...Fixing rank structure"
+        print("...Fixing rank structure")
         st.enforceRankStructure(options.rankFile)
         
-    print "...Writing ASCII representations"
+    print("...Writing ASCII representations")
     asciiout = open(options.name+"_ascii_tree.txt","w")
     indout = open(options.name+"_indented_tree.txt","w")
     Phylo.draw_ascii(st.tree, file=asciiout)
@@ -100,18 +100,18 @@ def main():
     asciiout.close()
     indout.close()
         
-    print "...Writing fasta"
+    print("...Writing fasta")
     st.writeFasta(inFile = options.fastaFile, outFile = options.name + ".fasta")
         
-    print "...writing CREST config files"
+    print("...writing CREST config files")
     st.writeConfigFiles(mapFile=options.name + ".map", treeFile=options.name + ".tre")    
     
     if options.megan_out:
-        print "...writing MEGAN config files"
+        print("...writing MEGAN config files")
         st.writeMEGANFiles(mapFile=options.name + "_megan.map", treeFile=options.name + "_megan.tre")
     
     if options.sintax_out:
-        print "...writing SINTAX training data (FASTA format)"
+        print("...writing SINTAX training data (FASTA format)")
         st.writeFasta(inFile = options.fastaFile, outFile = options.name + "_sintax.fasta", 
                       sintax=True)
 
